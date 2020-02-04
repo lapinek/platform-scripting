@@ -198,13 +198,16 @@ authz_code=$(curl -k -s -w "%{redirect_url}" 'https://default.iam.example.com/am
     -H 'X-OpenAM-Password:password' \
     | sed -e 's/^.*"tokenId":"\([^"]*\)".*$/\1/') \
 | sed 's/^.*?code=\([^&]*\).*$/\1/') \
-&& curl -k 'https://default.iam.example.com/am/oauth2/access_token' \
+&& access_token=$(curl -k 'https://default.iam.example.com/am/oauth2/access_token' \
 -X POST \
 --data 'client_id=script&redirect_uri=http://localhost:9999&grant_type=authorization_code&code='$authz_code \
--H 'Content-Type: application/x-www-form-urlencoded'
+-H 'Content-Type: application/x-www-form-urlencoded' \
+| sed 's/^.*"access_token":"\([^"]*\)".*$/\1/') \
+&& echo $access_token
 ```
 
-
+| sed 's/^.*"access_token"":"\([^"]*\)".*$/\1/') \
+echo $access_token
 
 > If you try using a script to access an API accessible only over encrypted connection with a self signed certificate, make sure IDM's Java trusts this certificate.
 
