@@ -170,6 +170,8 @@ We will place the example scripts in the location denoted as `"&{idm.instance.di
 
     var result = openidm.action("external/rest", "call", params)
 
+    print(result)
+
     return result
  }())
  ```
@@ -185,7 +187,11 @@ def params = [
     method: "GET"
 ]
 
-openidm.action("external/rest", "call", params)
+def result = openidm.action("external/rest", "call", params)
+
+println result
+
+return result
 ```
 
 In order to make an HTTP request, the script used `action` method of the `openidm` Java object. You can find more about scripts environment and available for scripts functionality in the IDM docs, in its [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#appendix-scripting). In particular, the `action` method is described in the [openidm.action(resource, actionName, content, params, fields)](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#function-action) section.
@@ -208,9 +214,11 @@ The updated scripts will be copied promptly, but the time it takes for ForgeRock
 
 You can change the minimum interval setting (in milliseconds) before you deploy or redeploy the sample.
 
-##### Authorization
+***
 
-You can see your script at work by validating it, as described in the [IDM Docs](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-endpoint). In order to be able to access the `/script` endpoint you will need to authorize your client. In `forgeops`, you would need to provide an access token from `amadmin` user associated with the `openid` scope in a request made to the IDM `/script` endpoint.
+#### Evaluating Scripts
+
+You can try out your script by validating it, as described in the [IDM Docs](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-endpoint). In order to be able to access the `/script` endpoint you will need to authorize your client. In `forgeops`, you would need to provide an access token from `amadmin` user associated with the `openid` scope in a request made to the IDM `/script` endpoint.
 
 For this example, we will describe how you can create `scripts` OAuth 2.0 client in [ForgeRock Access Management](https://www.forgerock.com/platform/access-management) (AM), which can be performed with the following cURL command:
 
@@ -290,11 +298,11 @@ curl -k -X POST \
 
 ***
 
-##### Debugging
+#### Debugging
 
-While working on a script you may have an option to use a debugger. We will provide an example of the debugging process based on a popular IDE for developing in Java and Groovy, [IntelliJ IDEA](https://www.jetbrains.com/idea/).
+While working on a script (file) you may have an option to use a debugger. We will provide an example of the debugging process based on a popular IDE for developing in Java and Groovy, [IntelliJ IDEA](https://www.jetbrains.com/idea/). You can check out details on setting debugging environment in [IntelliJ's docs](https://www.jetbrains.com/help/idea/creating-and-editing-run-debug-configurations.html), but the general steps are outlined below:
 
-1. Open forgeops clone in IntelliJ.
+1. Open your `forgeops` clone in IntelliJ.
 
 1. Select "Run" > "Edit Configurations...".
 
@@ -360,10 +368,54 @@ While working on a script you may have an option to use a debugger. We will prov
 
     In IntelliJ, you can now set breaking points in the script, start debugging, and then evaluate the script by making authorized request to the IDM `/script` endpoint. IntelliJ should react on messaged coming from localhost:5005 and follow the code in your file.
 
+***
+
+#### Inline Scripts
+
+As described in the [Calling a Script From a Configuration File](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-call) section of the IDM docs, script content can be provided directly in the code of an event handler in IDM. For example, you can invoke the inline equivalent of the groovy script when a managed object is updated in IDM by adding the following filter in `/path/to/staging/area/idm/conf/router.json`:
+
+```json
+{
+    "filters" : [
+
+        . . .
+
+        {
+            "pattern" : "^(managed|system|internal)($|(/.+))",
+            "onRequest" : {
+                "type" : "groovy",
+                "source" : "import org.forgerock.openidm.action.*\n// Parameters for `openidm.action`.\ndef params = [url : \"http://dummy.restapiexample.com/api/v1/employees\", method: \"GET\"]\ndef result = openidm.action(\"external/rest\", \"call\", params)\nreturn result"
+            },
+            "methods" : [
+                "patch"
+            ]
+        },
+
+        . . .
+    ]
+}
+```
+
+> Multiline scripts can be presented in JSON by concatenating the lines with the new line symbol, `\n`. To produce a visible effect for this script in the deployment logs, you can add `\nprint result` before the return statement.
 
 
 
 
+
+
+
+
+
+
+***
+***
+***
+
+Questions:
+
+1. Best generic route, condition, pattern.
+1. Multiline scripts recommendations.
+1. Groovy does not need return statement?
 
 ***
 ***
