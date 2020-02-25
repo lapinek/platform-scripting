@@ -125,7 +125,7 @@ We will create a script that will make an HTTP call to an online service and rec
 
 > If you use ForgeRock Identity Platform scripts to access an API over encrypted connection, make sure the individual components' Java trusts the underlying SSL/TLS certificate.
 
-## Scripting in the [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM)
+## Scripting in [ForgeRock Identity Management](https://www.forgerock.com/platform/identity-management) (IDM)
 
 ### Basics
 
@@ -262,7 +262,7 @@ authz_code=$(curl -k -s -w "%{redirect_url}" 'https://default.iam.example.com/am
 && echo $access_token
 ```
 
-Then, you can validate the script by making a request to the `/script` end point and including the access token received from the authorization. For example:
+Then, you can validate the script by making a request to the `/script` end point and including the access token received from the authorization. You can also provide script parameters under the "globals" namespace. For example:
 
 ```bash
 curl -k -X POST \
@@ -272,7 +272,13 @@ curl -k -X POST \
 -H 'Content-Type: application/json' \
 -d '{
     "type": "javascript",
-    "file": "example.js"
+    "file": "example.js",
+    "globals": {
+        "params": {
+            "url": "http://dummy.restapiexample.com/api/v1/employees",
+            "method": "GET"
+        }
+    }
 }'
 ```
 
@@ -292,7 +298,13 @@ curl -k -X POST \
 -H 'Content-Type: application/json' \
 -d '{
     "type": "groovy",
-    "file": "example.groovy"
+    "file": "example.groovy",
+    "globals": {
+        "params": {
+            "url": "http://dummy.restapiexample.com/api/v1/employees",
+            "method": "GET"
+        }
+    }
 }'
 ```
 
@@ -384,7 +396,13 @@ As described in the [Calling a Script From a Configuration File](https://backsta
             "pattern" : "^(managed|system|internal)($|(/.+))",
             "onRequest" : {
                 "type" : "groovy",
-                "source" : "import org.forgerock.openidm.action.*\n// Parameters for `openidm.action`.\ndef params = [url : \"http://dummy.restapiexample.com/api/v1/employees\", method: \"GET\"]\ndef result = openidm.action(\"external/rest\", \"call\", params)\nreturn result"
+                "source" : "import org.forgerock.openidm.action.*\ndef result = openidm.action(\"external/rest\", \"call\", params)\nprintln result\nreturn result",
+                "globals" : {
+                    "params" : {
+                        "url" : "http://dummy.restapiexample.com/api/v1/employees",
+                        "method" : "GET"
+                    }
+                }
             },
             "methods" : [
                 "patch"
@@ -396,9 +414,13 @@ As described in the [Calling a Script From a Configuration File](https://backsta
 }
 ```
 
-> Multiline scripts can be presented in JSON by concatenating the lines with the new line symbol, `\n`. To produce a visible effect for this script in the deployment logs, you can add `\nprint result` before the return statement.
+In IDM, multiline scripts can be presented in the configuration files' JSON by concatenating the lines with the new line symbol, `\n`. To produce a visible effect for this script in the deployment logs, you can add `\nprint result` before the return statement, as shown in the example above.
 
+When you change `router.json`, don't forget to build and deploy your sample, if this is not done automatically.
 
+## Scripting in [ForgeRock Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG)
+
+Similar to IDM, IG allows to specify script content either in the JSON configuration or in a file. Similar to IDM, IG scripts accept arguments specified in the script configuration. The structure of a script call, while is similar to one for IDM, is different, however.
 
 
 
@@ -416,6 +438,12 @@ Questions:
 1. Best generic route, condition, pattern.
 1. Multiline scripts recommendations.
 1. Groovy does not need return statement?
+1. Sanitizing params or accept directly?
+
+References:
+
+1. Conventions:
+    1. https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/#formatting-conventions
 
 ***
 ***
