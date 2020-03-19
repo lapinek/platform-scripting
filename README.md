@@ -21,18 +21,28 @@
 1. Suggested Example
 
     1. Make HTTP request to a service
+    1. Location, Syntax, and Examples
+    1. Summary Table
+    1. Differences in Context, Use of the Scripts
+
+1. Questions
+
+    1. Use case for each component? Or abstract from use cases and focus on the script environment?
+    1. Full implementation details (that is, step-by-step functional example) or just key concepts?
+    1. How not to repeat existing docs and reference them efficiently?
+    1. Should we cover IG Studio?
 
 ## Exploration
 
 ## Setting up the Platform Environment
 
-The easiest way to establish a ForgeRock Identity Platform development environment is installing the [ForgeRock DevOps and Cloud Deployment](https://github.com/ForgeRock/forgeops) sample (forgeops) and running it in a [Minikube](https://kubernetes.io/docs/setup/minikube/) instance. ForgeRock documentation supplies detailed instructions on how to set it up in its [Technology Preview: Using Minikube](https://backstage.forgerock.com/docs/platform/6.5/devops-guide-minikube/#chap-devops-implementation-env) and [DevOps Developer's Guide](https://backstage.forgerock.com/docs/platform/6.5/devops-guide/#chap-devops-implementation-env).
+The easiest way to establish a ForgeRock Identity Platform development environment is installing the [ForgeRock DevOps and Cloud Deployment](https://github.com/ForgeRock/forgeops) sample (forgeops) and running it in a [Minikube](https://kubernetes.io/docs/setup/minikube/) instance. ForgeRock documentation supplies detailed instructions on how to set it up in its [DevOps Developer's Guide: Using Minikube](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-implementation-env).
 
-> The more up to date information could be found in the [Early Access DevOps Developer's Guide: Using Minikube](https://ea.forgerock.com/docs/forgeops/devops-guide-minikube/) documentation.
+> You may also want to [Start Here](https://backstage.forgerock.com/docs/forgeops/6.5/start-here/) for getting familiar with the ForgeRock DevOps concepts.
 
-Further instructions will assume that the ForgeRock platform software is running in Minikube in the "default" namespace.
+Further instructions will assume that the ForgeRock platform software is running in Minikube in the `default` namespace.
 
-> This means there is no namespace explicitly created with the `kubectl create namespace` _`my-namespace`_ command). In that case, you set your current Minikube context to the default namespace:
+> This means there is no namespace explicitly created with the `kubectl create namespace` _`my-namespace`_ command) and you set your Minikube context to the default one:
 >
 > ```bash
 > kubectl config set-context --current --namespace=default
@@ -43,6 +53,8 @@ Furthermore, we will assume the file structure that exists in the `forgeops` pro
 > The scripting environment didn't change substantially between versions `6.5` and `7.0` and you should be able to use the same scripts in either of those.
 
 In this setup, the custom configuration for the ForgeRock Identity Platform components, which the scripts are a part of, is stored and versioned under the `/path/to/forgeops/config` directory, which is to serve as a master copy. However, the running platform sample reads custom configuration from a "staging area", under the `/path/to/forgeops/docker/7.0` directory and the custom configuration files in the staging area are not under version control. This means they need to be copied there in order for the custom settings to take effect and for the custom scripts to become available in the running platform sample.
+
+> Learn more [About Data Used by the Platform](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-data) and its [Configuration Profiles](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-data-profiles) in the ForgeOps documentation.
 
 As described in the [Managing Configurations](https://github.com/ForgeRock/forgeops/blob/master/README.md#managing-configurations) section of the main `forgeops` README file, you could use `/path/to/forgeops/bin/config.sh` script to manage configuration data. For example, to copy configuration for the version 7.0 of the ForgeRock Identity Platform stored under the `cdk` profile, you could run:
 
@@ -102,7 +114,7 @@ INFO[1140] Copying files: map[docker/7.0/idm/script/example.js:[/opt/openidm/scr
 
 > At the time of writing, Skaffold's File Sync did not work for files under deep directory structures copied into the staging area, which what `config.sh init` does, at least in some environments. Hence, it may be more reliable to edit files directly in the staging area or copy them there explicitly—that is, not as part of a directory tree—in order for the File Sync functionality to detect and pick up the changes.
 
-When you are ready to rebuild and redeploy your platform instance, you can `Ctrl^C` and restart it in your terminal. If your process does not produce output in the terminal for some reason, run `skaffold delete` to stop the deployment and  cleanup the deployed artifacts and then `skaffold dev . . .` with the options to start the platform again.
+When you are ready to rebuild and redeploy your platform instance, you can `Ctrl^C` and restart it in your terminal. If your process does not produce output in the terminal for some reason, run `skaffold delete` to stop the deployment and  cleanup the deployed artifacts and then `skaffold dev . . .` with the options to start the platform again. Please see [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) in the DevOps Developer's Guide for complete instructions on how to stop your deployment.
 
 You can also use the [Skaffold API](https://skaffold.dev/docs/design/api/) to control your deployment when it is running. For example, to rebuild and redeploy your sample, you could run (in a separate instance of the terminal):
 
@@ -129,7 +141,11 @@ We will create a script that will make an HTTP call to an online service and rec
 
 ### Basics
 
+Please see [IDM Docs](https://backstage.forgerock.com/docs/idm) for version-specific, comprehensive, and easy to read technical information about the component.
+
 Basic information about scripting in IDM can be found in its Integrator's Guide, in the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter, and other sections of the documentation that have been referenced from there.
+
+Scripts in IDM could be associated with its endpoints or events connected to managed objects.
 
 As the docs state, the custom scripts could be written in JavaScript or Groovy. In this writing, we will create both versions of an example script to run against the default environment defined in the `/path/to/idm/conf/script.json` file (under the IDM installation in the running container); for example, in `/opt/openidm/conf/script.json`. If a corresponding file is defined in the staging area, in `/path/to/forgeops/docker/7.0/idm/conf/script.json` in the described here example, this file will be copied to the container when it is deployed.
 
@@ -162,15 +178,7 @@ We will place the example scripts in the location denoted as `"&{idm.instance.di
 
 ```javascript
 (function () {
-    // Parameters for `openidm.action`.
-    var params = {
-        "url": "http://dummy.restapiexample.com/api/v1/employees",
-        "method": "GET"
-    }
-
     var result = openidm.action("external/rest", "call", params)
-
-    print(result)
 
     return result
  }())
@@ -181,17 +189,22 @@ An equivalent script in `Groovy`, in `example.groovy` file, might look like the 
 ```groovy
 import org.forgerock.openidm.action.*
 
-// Parameters for `openidm.action`.
-def params = [
-    url : "http://dummy.restapiexample.com/api/v1/employees",
-    method: "GET"
-]
+// final params = params as Map
 
 def result = openidm.action("external/rest", "call", params)
 
 println result
 
 return result
+```
+
+Both scripts expect `params` argument; we will provide it as a JSON at the time the script is called:
+
+```JSON
+params = {
+    "url": "http://dummy.restapiexample.com/api/v1/employees",
+    "method": "GET"
+}
 ```
 
 In order to make an HTTP request, the script used `action` method of the `openidm` Java object. You can find more about scripts environment and available for scripts functionality in the IDM docs, in its [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#appendix-scripting). In particular, the `action` method is described in the [openidm.action(resource, actionName, content, params, fields)](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#function-action) section.
@@ -335,7 +348,7 @@ While working on a script (file) you may have an option to use a debugger. We wi
             <img alt="Run/Debug Configurations Window in IntelliJ" src="README_files/intellij.run-debug-configurations.png" width="700" />
 
 
-1. In your staging area, under the IDM component directory, in Dockerfile (for example, in `/path/to/forgeops/docker/7.0/idm/Dockerfile`) change the environment variable `JAVA_OPTS` according to the debugging settings you find in the IDM project itself; for example, in `/path/to/idm/openidm-runtime/src/main/resources/startup.sh` you may find:
+1. In your staging area, under the IDM component directory, in Dockerfile (for example, in `/path/to/forgeops/docker/7.0/idm/Dockerfile`) change the environment variable `JAVA_OPTS` according to the debugging settings in the IDM project itself—as described in the [Starting in Debug Mode](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#starting-in-debug-mode) section of the IDM Integrator's Guide. For example, in `/path/to/idm/openidm-runtime/src/main/resources/startup.sh` you may find:
 
     ```java
     if [ "$JPDA" = "jpda" ] ; then
@@ -354,6 +367,8 @@ While working on a script (file) you may have an option to use a debugger. We wi
     OPENIDM_OPTS="$OPENIDM_OPTS $JPDA_OPTS"
     fi
     ```
+
+    > You can find more details on
 
     The resulting line in your Dockerfile might look like this:
 
@@ -382,7 +397,7 @@ While working on a script (file) you may have an option to use a debugger. We wi
 
 ***
 
-#### Inline Scripts
+#### Inline Scripts in Configuration Files
 
 As described in the [Calling a Script From a Configuration File](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-call) section of the IDM docs, script content can be provided directly in the code of an event handler in IDM. For example, you can invoke the inline equivalent of the groovy script when a managed object is updated in IDM by adding the following filter in `/path/to/staging/area/idm/conf/router.json`:
 
@@ -396,7 +411,7 @@ As described in the [Calling a Script From a Configuration File](https://backsta
             "pattern" : "^(managed|system|internal)($|(/.+))",
             "onRequest" : {
                 "type" : "groovy",
-                "source" : "import org.forgerock.openidm.action.*\ndef result = openidm.action(\"external/rest\", \"call\", params)\nprintln result\nreturn result",
+                "source" : "import org.forgerock.openidm.action.*\n\ndef result = openidm.action(\"external/rest\", \"call\", params)\n\nprintln result\n\nresult",
                 "globals" : {
                     "params" : {
                         "url" : "http://dummy.restapiexample.com/api/v1/employees",
@@ -418,51 +433,263 @@ In IDM, multiline scripts can be presented in the configuration files' JSON by c
 
 When you change `router.json`, don't forget to build and deploy your sample, if this is not done automatically.
 
+#### Inline Scripts in IDM Admin
+
+Some configuration options can be associated with scripts in the IDM Admin UI.
+
+To experience it first hand, you could, for example, sign in at `https://default.iam.example.com/admin`, navigate to CONFIGURE > MANAGED OBJECTS > USER, and select the Scripts tab. Here, you'll be provided with an a choice of modifying one of the existing scripts or creating a new one:
+
+<img src="README_files/idm.admin.managed-object.user.script-manager.scripts.png" alt="IDM Admin, Configure Manged Object, User, Scripts" width="700">
+
+Select Edit or Add Script button for an event associated with User object and populate the provided in Script Manager window input area with the content from a script file you've created earlier. Don't forget the parameters the script is expecting to receive. And make sure you selected the correct script engine from the Type dropdown. For example:
+
+<img src="README_files/idm.admin.managed-object.user.script-manager.script.groovy.png" alt="IDM Admin, Configure Manged Object, User, Script, Groovy" width="700">
+
+Select Save.
+
+Now, if you trigger the event you associated your script with, for example update a user attribute (`onUpdate`) or open a user record in the admin (`onRead`), you may observe in the IDM pod logs the printed results of the network call (if it was successful).
+
+You can use `/path/to/forgeops/bin/config.sh` to see how this change is reflected in configuration files, as described in [Managing Configurations](https://github.com/ForgeRock/forgeops/blob/master/README.md#managing-configurations) in ForgeOps README.
+
+Running the differences will reveal the way your multiline script is preserved in JSON. For example:
+
+```diff
+             "onUpdate" : {
+-                "type" : "text/javascript",
+-                "source" : "require('onUpdateUser').preserveLastSync(object, oldObject, request);"
++                "type" : "groovy",
++                "globals" : {
++                    "params" : {
++                        "url" : "http://dummy.restapiexample.com/api/v1/employees",
++                        "method" : "GET"
++                    }
++                },
++                "source" : "import org.forgerock.openidm.action.*\n\ndef result = openidm.action(\"external/rest\", \"call\", params)\n\nprintln result\n\nresult"          },
+```
+
+This can serve as an illustration for creating other inline scripts in the configuration files.
+
+##### Notes
+
+###### From IDM Integrator's Guide:
+
+* [5.11.1.2. Custom Progressive Profile Conditions](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#progressive-profile-queries-scripts):
+
+    > While you can also reference metadata for scripts, you can't check for all available fields, as there is no outer object field. However, you can refer to fields that are part of the user object.
+
+* [6.4.1. Running Queries and Commands on the Repository](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#repo-commands)
+
+    > The command can be called from a script.
+
+* [7.7. Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-config)
+
+* [7.8. Calling a Script From a Configuration File](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-call)
+
+* [8.1. Accessing Data Objects By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#data-scripts)
+
 ## Scripting in [ForgeRock Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG)
 
-Similar to IDM, IG allows to specify script content either in the JSON configuration or in a file. Similar to IDM, IG scripts accept arguments specified in the script configuration. The structure of a script call, while is similar to one for IDM, is different, however.
+Please see [IG Docs](https://backstage.forgerock.com/docs/ig) for comprehensive coverage of the component.
+
+### IG in ForgeOps
+
+IG is not included in the `cdk` profile we've been using so far. It is used, however, for OAuth 2.0 API protection in the `oauth2` profile in the 6.5 version of the ForgeOps configuration. To have the `oauth2` profile deployed, stop your current deployment with `Ctrl^C` if it is still running in the foreground, or run `skaffold delete` if the deployment is not active in your terminal. Then, clear the persistent volumes with `kubectl delete pvc --all`. Optionally, you can delete your VM with `minikube delete` and [create a new one](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-implementation-env-cluster).
+
+After setting your minikube development environment and before deploying with Skaffold, copy the `oauth2` profile configuration into the staging area. For that, navigate to `/path/to/forgeops` and run:
+
+```bash
+./bin/config.sh init --version 6.5 --profile oauth2
+```
+
+You should see that your staging area has been initialized with the specific configuration for IDM, IG, and AM (via the `amster` pod definition):
+
+```bash
+removing idm configs from docker/6.5
+cp -r config/6.5/oauth2/idm docker/6.5
+
+removing ig configs from docker/6.5
+cp -r config/6.5/oauth2/ig docker/6.5
+
+removing amster configs from docker/6.5
+cp -r config/6.5/oauth2/amster docker/6.5
+cp config/6.5/oauth2/secrets/config/* docker/forgeops-secrets/forgeops-secrets-image/config
+```
+
+Make a copy of the `skaffold-6.5.yaml` file for making configuration changes—such as Skaffold FileSync setup. For example:
+
+```bash
+cp skaffold-6.5.yaml skaffold-dev-6.5.yaml
+```
+
+Now, you can deploy the `oauth2` profile with the following Skaffold command:
+
+```bash
+skaffold dev --filename skaffold-dev-6.5.yaml --profile oauth2
+```
+
+You can confirm presence of the IG pod in your deployment, the pod that starts with the `ig-` prefix, by running:
+
+```bash
+kubectl get pods | grep ig-
+ig-64895df56-cj6bc       1/1     Running     0          110m
+```
 
 
 
+### Scripts in IG
+
+Scripts in IG may be associated with one of the [scriptable object types](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf).
+
+Similar to IDM, IG allows to specify script content either inline in a configuration file or in a designated script file. In either case, only the `application/x-groovy` MIME type is supported. Similar to IDM, IG scripts accept parameters provided as the `args` key in the script configuration. For example, the following [ScriptableFilter](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#ScriptableFilter) definition may be a part of a [Chain Handler](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Chain) and use `example.groovy` script to process the request:
+
+```json
+{
+    . . .
+     "handler": {
+        "type": "Chain",
+        "config": {
+            "filters": [
+                . . .
+                {
+                    "name": "ScriptableFilter",
+                    "type": "ScriptableFilter",
+                    "config": {
+                        "args": {
+                            "url": "http://dummy.restapiexample.com/api/v1/employees",
+                            "method": "GET"
+                        },
+                        "type": "application/x-groovy",
+                        "file": "example.groovy"
+                    }
+                },
+                . . .
+            ],
+            "handler": "someHandler"
+        }
+}
+```
+
+The script, functionally very similar to the one we used in IDM, itself might look like the following:
+
+```groovy
+def call = new Request()
+call.setUri(url)
+call.setMethod(method)
+
+http.send(call)
+.thenOnResult { response ->
+    def result = response.entity.json
+
+    println result
+
+    response.close()
+}
+.thenAsync({
+    next.handle(context, request)
+} as AsyncFunction)
+```
+
+For making the dummy API call, the script is using an [HTTP Client](https://backstage.forgerock.com/docs/ig/6.5/apidocs/org/forgerock/http/Client.html) represented by the `http` object, one of the available objects described in [Scripts Configuration](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf) in IG docs. We use `thenOnResult` notification (and you can compliment it with `thenOnException`) because in this example we do not use the results of the dummy request, except printing them in the IG pod's logs for demonstration purposes. Once that Promise is complete, `thenAsync` calls the next filter or handler in the chain by returning `next.handle(context, request)`. You can find more details on using IG's non-blocking APIs in scripts in [this Knowledge Base article](https://backstage.forgerock.com/knowledge/kb/article/a77687377).
+
+A multiline script can be defined in a configuration files as an array of strings. Then, an equivalent of the above script might look like the following:
+
+```json
+[
+    . . .
+    {
+        "name": "ScriptableFilter",
+        "type": "ScriptableFilter",
+        "config": {
+            "args": {
+                "url": "http://dummy.restapiexample.com/api/v1/employees",
+                "method": "GET"
+            },
+            "type": "application/x-groovy",
+            "source": [
+                "def call = new Request();",
+                "call.setUri(url);",
+                "call.setMethod(method);",
+
+                "http.send(call)",
+                ".thenOnResult { response ->",
+                    "def result = response.entity.json;",
+
+                    "println result;",
+
+                    "response.close();",
+                "}",
+                ".thenAsync({",
+                    "next.handle(context, request);",
+                "} as AsyncFunction);"
+            ]
+        }
+    },
+    . . .
+]
+```
 
 
+## Summary
+
+| Script Feature | IDM | IG | AM |
+|-|-|-|-|
+| References | https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting | https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/#chap-extending | |
+| Type | `text/javascript`, `groovy` | `application/x-groovy` | |
+| Configuration | Part of a configuration file (JSON) | Part of a configuration file (JSON) | |
+| Content | File, JSON configuration, Script Manager | File, JSON configuration, Studio (may not be available in ForgeOps) | |
+| Multiline Source | `\n` | Array (of strings) | |
+| Arguments | The `globals` namespace | `args` key | |
+| Access to | `openidm` functions, request, context, managed object, resource information, operation results | request, context, etc., [Properties, Available Objects, and Imported Classes](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf)| |
+| Other Context Differences | | |
+| Extras | | Capture Decorator | |
 
 
+#### Configuration Syntax
+
+1. IDM
+
+    ```json
+    {
+        "type" : "javascript|groovy",
+        "source|file" : "code|URI",
+        "globals" : {}
+    }
+    ```
+
+1. IG
+
+    ```json
+    {
+        "name": "name",
+        "type": "ScriptableFilter|ScriptableHandler|ScriptableThrottlingPolicy|ScriptableAccessTokenResolver|OAuth2ResourceServerFilter",
+        "config": {
+            "type": "application/x-groovy",
+            "file": "SimpleFormLogin.groovy",
+            "args": {}
+        }
+    }
+    ```
 
 ***
 ***
 ***
-
-Questions:
-
-1. Best generic route, condition, pattern.
-1. Multiline scripts recommendations.
-1. Groovy does not need return statement?
-1. Sanitizing params or accept directly?
 
 References:
 
 1. Conventions:
     1. https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/#formatting-conventions
 
-***
-***
-***
-
 1. Debugging
 
-    1. References
+    1. `forgeops/cicd/forgeops-ui/README.MD`
 
-        1. `forgeops/cicd/forgeops-ui/README.MD`
+1. IG
 
-    1. Docker file
+    1. Chain Scriptable Filter
 
-        1.
+        1. https://backstage.forgerock.com/knowledge/kb/article/a77687377
 
-    1. Kubernetes
-
-        1. Debug
-
+Notes
 
 1. Eval and Compile
 
@@ -484,3 +711,9 @@ References:
 1. Postman
 
     1.
+
+1. Scripts (Behavior)
+
+    1. Groovy considers the last evaluated expression of a method to be the returned value.
+    1. JS as well?
+
