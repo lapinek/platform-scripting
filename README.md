@@ -3,6 +3,15 @@
 
 ## Plan
 
+Need to define the series, so that the scope of the first article is outlined.
+
+Chapters:
+
+1. What scripts can be used for?
+2. Where are they located?
+3. What data do they have access to? (For example echo.js)
+4. Debugging and logging.
+
 1. AM
 
     1. JVM
@@ -28,11 +37,54 @@
 1. Questions
 
     1. Use case for each component? Or abstract from use cases and focus on the script environment?
-    1. Full implementation details (that is, step-by-step functional example) or just key concepts?
+    1. Full implementation details (that is, step-by-step functional example) or just key concepts? (No)
     1. How not to repeat existing docs and reference them efficiently?
     1. Should we cover IG Studio?
+    1. Scripts' security.
+    1. AM
 
-## Exploration
+        1. Client-side (async) and server-side data exchange.
+
+1. Follow Ups
+
+    1. Debug logger in IDM
+    1. Debug logger in IG
+
+# Exploration
+
+ForgeRock Identity Platform components, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with scripts written in JavaScript and Groovy.
+
+## Where to Start
+
+Introduction to scripting in ForgeRock components and additional references to follow can be found in the components' documentation:
+
+* For AM, you can read about scripting in [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts) section of its Development Guide.
+
+    The doc provides information about the contexts to which scripts can be applied, the ways of managing and configuring scripts in AM, and the APIs, objects, and data available for scripts during runtime. The scripting engine configuration is described in the [Scripting Reference](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#global-scripting) part of the doc.
+
+    > Similar and less complete section, `About Scripting`, exists in AM's [Authentication and Single Sign-On](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#about-scripting), and [Authorization](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/#about-scripting) Guides.
+
+* To learn about scripting in IDM, you can start with the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter of IDM's Integrator's Guide.
+
+    From there, [Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-config) chapter is referenced, which is followed by [Calling a Script From a Configuration File](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-call) describing how a script could be used in different IDM contexts.
+
+    The scripting environment is further explained in the [Scripting Reference]() chapter of the Guide.
+
+    Information about scripting in IDM is also present in ForgeRock [Knowledge Base](https://backstage.forgerock.com/knowledge/kb/home). In particular, [FAQ: Scripts in IDM/OpenIDM](https://backstage.forgerock.com/knowledge/kb/article/a29088283) could serve as a good initial reference.
+
+    > The knowledge base site content is being constantly updated and allows to search for articles addressing a particular problem. For example, [How do I write to a file using JavaScript on a custom endpoint in IDM/OpenIDM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a88622670).
+
+* Extending IG with scripts starts in the [About Scripting](https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/index.html#about-scripting) section of its Gateway Guide.
+
+    Further information about scripts' usage, configuration, syntax, and environment can be found in IG Configuration Reference for [Scripts](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Scripts).
+
+## Examples
+
+Across documentation, there are meaningful, component specific examples of how the scripts could be employed.
+
+For a quick overview of scripting in AM, IDM, and IG, we will perform a simple scripted operation in a script associated with an event in the corresponding component. This will allow us to depict some similarities and some differences in how scripting can be approached in different ForgeRock components. The script will perform a network call to an external service and print or log the results.
+
+But first, we will need an environment for deploying all three components.
 
 ## Setting up the Platform Environment
 
@@ -47,12 +99,14 @@ Further instructions will assume that the ForgeRock platform software is running
 > ```bash
 > kubectl config set-context --current --namespace=default
 > ```
+>
+> We only need this convention to agree on the URLs used in examples.
 
-Furthermore, we will assume the file structure that exists in the `forgeops` project at the time of writing, and base our examples on the version `7.0` of the platform.
+Furthermore, we will assume the file structure that exists in the `forgeops` project at the time of writing, and unless specifically noted, base our examples on the version `7.0` of the platform.
 
 > The scripting environment didn't change substantially between versions `6.5` and `7.0` and you should be able to use the same scripts in either of those.
 
-In this setup, the custom configuration for the ForgeRock Identity Platform components, which the scripts are a part of, is stored and versioned under the `/path/to/forgeops/config` directory, which is to serve as a master copy. However, the running platform sample reads custom configuration from a "staging area", under the `/path/to/forgeops/docker/7.0` directory and the custom configuration files in the staging area are not under version control. This means they need to be copied there in order for the custom settings to take effect and for the custom scripts to become available in the running platform sample.
+In this setup, the custom configuration for the ForgeRock Identity Platform components, which the some of the scripts are a part of, is stored and versioned under the `/path/to/forgeops/config` directory, which is to serve as a master copy. However, the running platform sample reads custom configuration from a "staging area", under the `/path/to/forgeops/docker/7.0` directory and the custom configuration files in the staging area are not under version control. This means that prior the sample is deployed, they need to be copied to the staging area in order for the custom settings to take effect and for the (versioned) custom scripts to become available in the running platform sample.
 
 > Learn more [About Data Used by the Platform](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-data) and its [Configuration Profiles](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-data-profiles) in the ForgeOps documentation.
 
@@ -62,9 +116,9 @@ As described in the [Managing Configurations](https://github.com/ForgeRock/forge
 ./bin/config.sh --profile=cdk --version=7.0 init
 ```
 
-In this case the versioned configuration files, kept in `/path/to/forgeops/config/7.0/cdk`, will be copied to the `/path/to/forgeops/docker/7.0` directory and the custom script content will be a part of the copied content. The settings saved under `/path/to/forgeops/docker/7.0` directory, the staging area, will take precedence over the default configuration (from the images), when the  containers are deployed. The other commands that the `config.sh` script accepts may extract the platform configuration from the running containers and save it back to the master directory. This flow preserves configurations changes made to the running platform sample with external tools; for example, via a platform component REST interface.
+In this case the versioned configuration files, kept in `/path/to/forgeops/config/7.0/cdk`, will be copied to the `/path/to/forgeops/docker/7.0` directory and the custom script content will be a part of the copied content. The settings saved under `/path/to/forgeops/docker/7.0` directory, the staging area, will take precedence over the default configuration (from the docker images), when the  containers are deployed. The other commands that the `config.sh` script accepts may extract the platform configuration from the running containers and save it back to the master directory. This latter flow helps to preserve configurations changes made to the running platform sample with external tools—for example, via a platform component REST interface.
 
-> The script files are not to be updated directly in the running containers and are not copied back to the master directory with the current implementation of the `config.sh` script.
+The script _files_, however, are not to be updated directly in the running containers and are not copied back to the master directory with the current implementation of the `config.sh` script.
 
 Alternatively, the custom configuration can be updated directly in the staging area and copied back to the version-controlled master directory—to be preserved for future deployments.
 
@@ -114,9 +168,9 @@ INFO[1140] Copying files: map[docker/7.0/idm/script/example.js:[/opt/openidm/scr
 
 > At the time of writing, Skaffold's File Sync did not work for files under deep directory structures copied into the staging area, which what `config.sh init` does, at least in some environments. Hence, it may be more reliable to edit files directly in the staging area or copy them there explicitly—that is, not as part of a directory tree—in order for the File Sync functionality to detect and pick up the changes.
 
-When you are ready to rebuild and redeploy your platform instance, you can `Ctrl^C` and restart it in your terminal. If your process does not produce output in the terminal for some reason, run `skaffold delete` to stop the deployment and  cleanup the deployed artifacts and then `skaffold dev . . .` with the options to start the platform again. Please see [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) in the DevOps Developer's Guide for complete instructions on how to stop your deployment.
+When you are ready to rebuild and redeploy your platform instance, you can `Ctrl^C` and restart it in your terminal. If your process does not run in the foreground, producing visible output in the terminal, run `skaffold delete` to stop the deployment and  cleanup the deployed artifacts and then `skaffold dev . . .` with the options to start the platform again. Please see [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) in the DevOps Developer's Guide for complete instructions on how to stop your deployment.
 
-You can also use the [Skaffold API](https://skaffold.dev/docs/design/api/) to control your deployment when it is running. For example, to rebuild and redeploy your sample, you could run (in a separate instance of the terminal):
+You can also use the [Skaffold API](https://skaffold.dev/docs/design/api/) to control your deployment when it is running. For example, to rebuild and redeploy you could run (in a separate instance of the terminal):
 
 ```bash
 curl -X POST http://localhost:50052/v1/execute \
@@ -133,7 +187,7 @@ curl -X POST http://localhost:50052/v1/execute \
 
 ## Scripting in the ForgeRock Components
 
-We will create a script that will make an HTTP call to an online service and receive a response in the form of JSON. For this purpose, as an example, we will visit a dummy API `http://dummy.restapiexample.com/api/v1/employees` endpoint.
+To compare environments provided by ForgeRock components, we will create a script that will make an HTTP call to an online service and receive a response in the form of JSON. For this purpose, as an example, we will visit a dummy API `http://dummy.restapiexample.com/api/v1/employees` endpoint.
 
 > If you use ForgeRock Identity Platform scripts to access an API over encrypted connection, make sure the individual components' Java trusts the underlying SSL/TLS certificate.
 
@@ -143,7 +197,7 @@ We will create a script that will make an HTTP call to an online service and rec
 
 Please see [IDM Docs](https://backstage.forgerock.com/docs/idm) for version-specific, comprehensive, and easy to read technical information about the component.
 
-Basic information about scripting in IDM can be found in its Integrator's Guide, in the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter, and other sections of the documentation that have been referenced from there.
+Basic information about scripting in IDM can be found in its Integrator's Guide, in the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter, and in other sections of the documentation that have been referenced from there.
 
 Scripts in IDM could be associated with its endpoints or events connected to managed objects.
 
@@ -155,7 +209,7 @@ The script content can be defined either inline in a configuration file (that is
 
 > Depending on your deployment strategy, defining scripts in files may not be supported, but it is an option in the described here environment which will allow us to demonstrate general principles for scripting in IDM.
 
-The locations that IDM is aware of and can read a script file from are defined in the `sources` key in the  `script.json` file:
+The locations that IDM is aware of and will read a script file from are defined in the `sources` key in the  `script.json` file:
 
 ```json
     "sources" : {
@@ -174,7 +228,7 @@ The locations that IDM is aware of and can read a script file from are defined i
     }
 ```
 
-We will place the example scripts in the location denoted as `"&{idm.instance.dir}/script"`, which corresponds to the `/path/to/idm/script` in the running IDM container and the `/path/to/forgeops/docker/7.0/idm/script` directory will be our IDM staging area. You can navigate there and create or add `example.js` file with the following content:
+We will place the example scripts in the location denoted as `"&{idm.instance.dir}/script"`, which corresponds to `/path/to/idm/script` in the running IDM container and `/path/to/forgeops/docker/7.0/idm/script` directory will be our IDM staging area. You can navigate there and create `example.js` file with the following content:
 
 ```javascript
 (function () {
@@ -231,7 +285,7 @@ You can change the minimum interval setting (in milliseconds) before you deploy 
 
 #### Evaluating Scripts
 
-You can try out your script by validating it, as described in the [IDM Docs](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-endpoint). In order to be able to access the `/script` endpoint you will need to authorize your client. In `forgeops`, you would need to provide an access token from `amadmin` user associated with the `openid` scope in a request made to the IDM `/script` endpoint.
+You can try out your script by validating it, as described in the [IDM Docs](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-endpoint). In order to be able to access the `/script` endpoint you will need to authorize your client for making request to the IDM `/script` endpoint. In `forgeops`, you would need to provide an access token from `amadmin` user. The token will need to be associated with the `openid` scope.
 
 For this example, we will describe how you can create `scripts` OAuth 2.0 client in [ForgeRock Access Management](https://www.forgerock.com/platform/access-management) (AM), which can be performed with the following cURL command:
 
@@ -275,7 +329,7 @@ authz_code=$(curl -k -s -w "%{redirect_url}" 'https://default.iam.example.com/am
 && echo $access_token
 ```
 
-Then, you can validate the script by making a request to the `/script` end point and including the access token received from the authorization. You can also provide script parameters under the "globals" namespace. For example:
+Then, you can validate the script by making a request to the `/script` end point and including the access token received from the authorization. You can provide script parameters under the "globals" namespace. For example:
 
 ```bash
 curl -k -X POST \
@@ -393,7 +447,7 @@ While working on a script (file) you may have an option to use a debugger. We wi
 
     Debugging a script in your staging area, with auto-sync or auto-deploy on, assures that you are debugging the same content as the one that is running in the container.
 
-    In IntelliJ, you can now set breaking points in the script, start debugging, and then evaluate the script by making authorized request to the IDM `/script` endpoint. IntelliJ should react on messaged coming from localhost:5005 and follow the code in your file.
+    In IntelliJ, you can now set breaking points in the script, start debugging, and then evaluate the script by making authorized request to the IDM `/script` endpoint. IntelliJ should react on messages coming from localhost:5005 and follow the code in your file.
 
 ***
 
@@ -447,9 +501,9 @@ Select Edit or Add Script button for an event associated with User object and po
 
 Select Save.
 
-Now, if you trigger the event you associated your script with, for example update a user attribute (`onUpdate`) or open a user record in the admin (`onRead`), you may observe in the IDM pod logs the printed results of the network call (if it was successful).
+Now, if you trigger the event you associated your script with, for example update a user attribute (triggering `onUpdate`) or open a user record in the admin (triggering `onRead`), you may observe in the IDM pod logs the printed results of the network call (if it succeeded).
 
-You can use `/path/to/forgeops/bin/config.sh` to see how this change is reflected in configuration files, as described in [Managing Configurations](https://github.com/ForgeRock/forgeops/blob/master/README.md#managing-configurations) in ForgeOps README.
+You can run the script at `/path/to/forgeops/bin/config.sh` with the `save` command to see how this change is reflected in configuration files, as described in [Managing Configurations](https://github.com/ForgeRock/forgeops/blob/master/README.md#managing-configurations) in ForgeOps README.
 
 Running the differences will reveal the way your multiline script is preserved in JSON. For example:
 
@@ -591,7 +645,7 @@ http.send(call)
 
 For making the dummy API call, the script is using an [HTTP Client](https://backstage.forgerock.com/docs/ig/6.5/apidocs/org/forgerock/http/Client.html) represented by the `http` object, one of the available objects described in [Scripts Configuration](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf) in IG docs. We use `thenOnResult` notification (and you can compliment it with `thenOnException`) because in this example we do not use the results of the dummy request, except printing them in the IG pod's logs for demonstration purposes. Once that Promise is complete, `thenAsync` calls the next filter or handler in the chain by returning `next.handle(context, request)`. You can find more details on using IG's non-blocking APIs in scripts in [this Knowledge Base article](https://backstage.forgerock.com/knowledge/kb/article/a77687377).
 
-A multiline script can be defined in a configuration files as an array of strings. Then, an equivalent of the above script might look like the following:
+A multiline script can be defined in a configuration file as an array of strings. Then, an equivalent of the above script might look like the following:
 
 ```json
 [
@@ -628,23 +682,101 @@ A multiline script can be defined in a configuration files as an array of string
 ]
 ```
 
+### Scripting in AM
 
-## Summary
+* Get running
+* Interface
+* Select authentication method (tree or chain)
+* Script, client (optional)
+
+    * Access to client information. For example: user agent, geolocation, or IP.
+
+* Script, server-side
+
+    * Access to data from client-side script
+    * Access to user record data
+    * Access to scripting API
+
+
+#### Environment
+
+1. Client-side Scripting
+
+    * Optional
+
+1. Server-side Scripting
+
+#### Goal
+
+1. During authentication, perform scripted action on the client side and pass resulting data to the server-side script.
+
+1. On server side, analyse the data received from the client-side script and make authentication decision.
+
+#### Means
+
+1. Authentication Chains
+
+
+
+1. Authentication Trees
+
+#### Debugging
+
+Set debugging level on a Category or an Instance level: `/am/Debug.jsp`
+
+Debug code with (the default) `logger.error` to reduce output.
+
+Change default `Organization Authentication Configuration` to the custom chain or tree.
+
+Editor: no `find and replace`,  no `Save` in full-screen mode.
+
+## Similarities
+
+Scripts extend existing functionality and their application is specific to a component. The component also defines the script what type of data and functionality is available for scripts. The the scripts' environment, configuration, and sometimes even syntax may be specific to a component.
+
+Nevertheless, scripts work at a low level, and there are similarities:
+
+* All three components support scripting in Groovy.
+
+* AM and IDM use [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino) (scripting engine) to support server-side JavaScript. The server-side scripts
+
+Now, to differences.
+
+## Differences
+
+* Languages
+
+    IG, currently, does not support JavaScript.
+
+    IDM only supports JavaScript on the server side, using Rhino.
+
+    AM allows for client-side scripts, which run in the browser environment. The server-side scripts, running on Rhino, can use data obtained with the client-side ones.
+
+*
+
+
+## Summary for Server-Side Scripts
 
 | Script Feature | IDM | IG | AM |
 |-|-|-|-|
-| References | https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting | https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/#chap-extending | |
-| Type | `text/javascript`, `groovy` | `application/x-groovy` | |
+| References | https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting | https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/#chap-extending | https://backstage.forgerock.com/docs/am/6/dev-guide/#chap-dev-scripts<br>https://backstage.forgerock.com/docs/am/6/dev-guide/#global-scripting<br>https://backstage.forgerock.com/docs/am/6/maintenance-guide/index.html#sec-maint-debug-logging<br>https://backstage.forgerock.com/docs/am/6.5/authentication-guide/#configuring-the-default-auth-chain<br>https://backstage.forgerock.com/docs/am/6/authentication-guide/index.html#sec-scripted-auth-module<br>https://backstage.forgerock.com/docs/am/6/authentication-guide/index.html#scripting-api-authn-client-data<br>https://forum.forgerock.com/topic/realm-authentication-chain/ |
+| Commons | Defined with JSON<br>Administrator account is required for managing scripts|
+| Type | `text/javascript`, `groovy` | `application/x-groovy` | JAVASCRIPT or GROOVY—depending on script `context` type (labeled `Script Type` in AM Console) |
 | Configuration | Part of a configuration file (JSON) | Part of a configuration file (JSON) | |
-| Content | File, JSON configuration, Script Manager | File, JSON configuration, Studio (may not be available in ForgeOps) | |
+| Managing | File, JSON configuration, Script Manager | File, JSON configuration, Studio (may not be available in ForgeOps) | AM Console, REST, `ssoadm` command, allows for setting defaults |
+| Validation | REST | | AM Console, REST |
 | Multiline Source | `\n` | Array (of strings) | |
 | Arguments | The `globals` namespace | `args` key | |
 | Access to | `openidm` functions, request, context, managed object, resource information, operation results | request, context, etc., [Properties, Available Objects, and Imported Classes](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf)| |
 | Other Context Differences | | |
 | Extras | | Capture Decorator | |
+| Security | | | Security Settings Component: Java Class White/Black Lists, System (JVM) SecurityManager|
+| Debugging | | | [Debug Logging](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-logger) |
+| Particularities | | | User-created scripts are realm-specific |
+| HTTP Request | | | `org.forgerock.http.protocol`, Synchronous [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-http-client)|
+| Exported Scripts Location | | | `/path/to/forgeops/docker/6.5/amster/config/realms/root/Scripts` |
 
-
-#### Configuration Syntax
+#### Configuration File Syntax
 
 1. IDM
 
