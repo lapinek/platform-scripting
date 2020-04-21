@@ -147,18 +147,20 @@ At this point, Skaffold should build and deploy your platform sample. If it fail
 
 [Back to the Top](#top)
 
-IDM and IG allow to define scripts in separate files, which may prove more convenient for script development in some cases and provides additional options for debugging.
+IDM and IG allow to define scripts in separate files, which in some cases may prove more convenient for script development and provides additional options for debugging.
 
-In the [development mode](https://skaffold.dev/docs/workflows/dev/), by default, Skaffold will rebuild and redeploy the sample if changes in the source code are detected in the staging area.
+In the [development mode](https://skaffold.dev/docs/workflows/dev/), by default, Skaffold will rebuild and redeploy the sample if changes in the source code are detected (in the staging area).
 
 Redeploying may take considerable time. If a script is defined in a separate file, it is read directly from the container's file system when executed. The component does not need to be rebuilt and redeployed in order for changes in the file to take effect; the file can simply be copied into the container.
 
 Thus, when trying out file based scripts, you may choose not to rebuild and redeploy your platform sample automatically, and instead only to copy the changed files into the corresponding container.
 
-One way to make this process automatic is to use Skaffold's [File Sync](https://skaffold.dev/docs/pipeline-stages/filesync/) feature—by adding the `sync` section to your development `yaml` file. For example, you can copy IDM scripts from the `script` directory in your staging area into the corresponding location in the running container:
+One way to make this process automatic is to use Skaffold's [File Sync](https://skaffold.dev/docs/pipeline-stages/filesync/) feature—by adding the `sync` section to the Skaffold `yaml` file you use for development. For example, you can copy IDM scripts from the `script` directory in your staging area into the corresponding location in the running container:
 
 ```yaml
-build:
+apiVersion: skaffold/v1beta12
+kind: Config
+build: &default-build
 artifacts:
 # . . .
 - image: idm
@@ -171,31 +173,33 @@ artifacts:
 # . . .
 ```
 
-> According to the Skaffold docs and the examples referenced there, the `strip` parameter should not be necessary in this case, as the files from the source directory—for example, `docker/6.5/idm/script`—should be copied to the corresponding `script`  directory under the `<WORKDIR>` specified in the upstream `Dockerfile`, which in this case is `/opt/openidmin/script`. However, at the time of writing, the beta version of the `File Sync` functionality copies the entire structure of the specified source into the destination folder. This means that without the `strip` parameter one may end up with a `/opt/openidmin/script/script` path created in the container. The `strip` directive allows specify directory hierarchy to be discarded while copying.
+> According to the Skaffold docs and the examples referenced there, the `strip` parameter should not be necessary in this case, as the files from the source directory—for example, `docker/6.5/idm/script`—should be copied to the corresponding `script`  directory under the `<WORKDIR>` specified in the upstream `Dockerfile`, which in this case is `/opt/openidmin/script`.
+>
+> However, at the time of writing, the beta version of the `File Sync` functionality copies the entire structure of the specified source into the destination folder. This means that without the `strip` parameter one may end up with a `/opt/openidmin/script/script` path created in the container. The `strip` directive allows to specify a directory hierarchy to be discarded while copying.
 
-To prevent automatic rebuilding and redeploying, use the `--auto-build` and `--auto-deploy` options set to `false` in the development mode. You may also want to set the `--verbosity` option to the `debug` or `info` level to receive more information about the actions Skaffold performs and the results it achieves. For example:
+To prevent automatic rebuilding and redeploying, use the `--auto-build` and `--auto-deploy` options set to `false` in the development mode. You may also want to set the `--verbosity` option to the `debug` or `info` level to receive more information about the actions Skaffold performs and the results it achieves. To extend the previous example:
 
 ```bash
-skaffold dev --filename='skaffold-dev.yaml' --verbosity='debug' --auto-build=false --auto-deploy=false
+skaffold dev --filename=skaffold-6.5.yaml --profile=oauth2 --status-check=false --verbosity='debug' --auto-build=false --auto-deploy=false
 ```
 
-> The `info` level option may be sufficient for simply registering file synchronization events.
+> The `info` level option may be sufficient for mere registering the file synchronization events.
 
-With these options and the `--auto-sync` option being set to `true` by default, Skaffold will not redeploy your sample when a change is detected, but it will still copy the updated scripts according to the `sync` section in your `yaml` file. With the aforementioned example, when changes have been saved a file under the `docker/7.0/idm/script`, the synchronization event should be reflected in your terminal. For example:
+With these options and the `--auto-sync` option being set to `true` by default, Skaffold will not redeploy your sample when a change is detected, but it will still copy the updated files according to the `sync` section in your `yaml` file. With the non-default verbosity level, when changes have been made in a file under the `docker/7.0/idm/script`, the synchronization event should be reflected in your terminal. For example:
 
 ```bash
-INFO[1140] files modified: [docker/7.0/idm/script/example.js]
+INFO[1140] files modified: [docker/6.5/idm/script/example.js]
 
 Syncing 1 files idm:g141394375ib414ber9is3h . . .
 
-INFO[1140] Copying files: map[docker/7.0/idm/script/example.js:[/opt/openidm/script/example.js]] to idm:g141394375ib414ber9is3h . . .
+INFO[1140] Copying files: map[docker/6.5/idm/script/example.js:[/opt/openidm/script/example.js]] to idm:g141394375ib414ber9is3h . . .
 ```
 
-> At the time of writing, Skaffold's File Sync did not work for files under deep directory structures copied into the staging area, which what `config.sh init` does, at least in some environments. Hence, it may be more reliable to edit files directly in the staging area or copy them there explicitly—that is, not as part of a directory tree—in order for the File Sync functionality to detect and pick up the changes.
+> At the time of writing, Skaffold's File Sync did not work reliably when files located deep in directory structures, under `/path/to/forgeops/config` were copied into the staging area by the `config.sh` script. Hence, it may be more dependable to edit files directly in the staging area or copy them there as files, not as part of a directory tree.
 
-When you are ready to rebuild and redeploy your platform instance, you can `Ctrl^C` and restart it in your terminal. If your process does not run in the foreground, producing visible output in the terminal, run `skaffold delete` to stop the deployment and  cleanup the deployed artifacts and then `skaffold dev . . .` with the options to start the platform again. Please see [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) in the DevOps Developer's Guide for complete instructions on how to stop your deployment.
+When you are ready to rebuild and redeploy your platform instance, you can `Ctrl^C` and restart it in your terminal. If your process does not run in the foreground (that is, producing visible output in the terminal), run `skaffold delete` to stop the deployment and to clean up the deployed artifacts. Then run `skaffold dev . . .` with the desired options to start the platform again. Please see [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) in the DevOps Developer's Guide for complete instructions on how to stop your deployment.
 
-You can also use the [Skaffold API](https://skaffold.dev/docs/design/api/) to control your deployment when it is running. For example, to rebuild and redeploy you could run (in a separate instance of the terminal):
+You can also use the [Skaffold API](https://skaffold.dev/docs/design/api/) to control your deployment when it is running. For example, to rebuild and redeploy you could run (in a separate instance of the terminal) the following:
 
 ```bash
 curl -X POST http://localhost:50052/v1/execute \
@@ -206,11 +210,11 @@ curl -X POST http://localhost:50052/v1/execute \
 -H "Content-Type: text/plain"
 ```
 
-> Using the `Paste Raw Text` option, you can import cURL commands into [Postman](https://www.postman.com/), if that is your preferred environment for making arbitrary network requests. Explicitly adding the "Content-Type: text/plain" header will instruct Postman to use `raw` body for sending the data. In the terminal, this header is not needed.
+> Using the `Paste Raw Text` option, you can import cURL commands into [Postman](https://www.postman.com/), if that is your preferred environment for making arbitrary network requests. Explicitly adding the "Content-Type: text/plain" header will instruct Postman to use `raw` body for sending the data. In the terminal, this header is not needed, but provides consistency between the two environments.
 >
-> When you execute the command and the system does not redeploy immediately, it probably means that it didn't detect any changes in the file system that were worth of the effort. When such changes occur in the watched locations after executing the command, deployment will be initiated.
+> When you execute the command and the system does not redeploy immediately, it probably means that it didn't detect any changes in the file system that were worth of the effort. When such changes occur in the watched locations after executing the command, the sample will be redeployed.
 
-Finally, remember that the script files are not expected to be edited directly in the containers. Thus, the scripts files are not copied by `bin/config.sh save` from the containers to the staging area and more importantly, they are not copied to the master directory by by `bin/config.sh save`. This means, that if you changing script files in staging area, you will need to remember to copy good ones back to the master directory manually.
+Finally, remember that the script files are not expected to be edited directly in the containers. Thus, the scripts files are not copied by `bin/config.sh export` from the containers to the staging area and more importantly, they are not copied to the master directory with `bin/config.sh save`. This means that if you are changing script files in your staging area, you will need to remember to copy the good ones back to the master directory manually in order for them to be versioned.
 
 ## Scripting in the ForgeRock Components
 
