@@ -1,11 +1,30 @@
 
-# Scripting in ForgeRock Platform Components
-
-## Proem
+# <a id="top"></a>Scripting in ForgeRock Platform Components
 
 ForgeRock Identity Platform components, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with scripts written in JavaScript and Groovy.
 
-## Where to Start
+## Contents
+
+* [Where to Start](#chapter-01)
+* [A Look Into the Platform Scripting](#chapter-02)
+* [Setting up the Environment and Running a Platform Sample with ForgeOps](#chapter-03)
+* [Developing Script Files in ForgeOps](#chapter-04)
+* [Scripting in the ForgeRock Components]()
+* [A Script Implementation]()
+* [AM]()
+* [IDM]()
+* [IG]()
+* [Similarities and Differences]()
+    * [Supported Languages]()
+    * [Script Locations]()
+    * [Syntax]()
+    * [Debugging Options]()
+* [Summary Table]()
+* [Conclusion]()
+
+## <a id="chapter-01"></a>Where to Start
+
+[Back to the Top](#top)
 
 Introduction to scripting in ForgeRock components and additional references to follow can be found in the components' documentation:
 
@@ -29,17 +48,23 @@ Introduction to scripting in ForgeRock components and additional references to f
 
     Further information about scripts' usage, configuration, syntax, and environment can be found in IG Configuration Reference for [Scripts](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Scripts).
 
-## Examples
+* Examples
 
-Across documentation, there are meaningful, component specific examples of how the scripts could be employed. Some of them will be brought up later in this document.
+    Across documentation, there are meaningful, component and content specific examples of how the scripts could be employed. Some of them will be referenced later in this document.
 
-For a quick overview of scripting in AM, IDM, and IG, we will make our own example, a simple, generic script associated with an event in the corresponding component. This will allow us to depict some similarities and some differences in how scripting can be approached in different ForgeRock components, and hopefully create useful background for further explorations. The script will perform a network call to an external service and print, log, or capture the results.
+## <a id="chapter-02"></a>A Look Into the Platform Scripting
+
+[Back to the Top](#top)
+
+For a quick overview of scripting in AM, IDM, and IG, we will make our own example, a simple, generic script associated with an event in the corresponding component. This will allow us to depict some similarities and some differences in how scripting can be approached in different ForgeRock components, and hopefully create a useful illustration for further explorations.
 
 But first, we will need an environment for deploying all three components, an environment to run this script in.
 
-> If you'd like to run ForgeRock platform components in a different environment, you may want to skip the next section, and make necessary adjustments to the instructions provided there.
+> If you already have ForgeRock platform components running, you may want to skip the next section and make necessary adjustments to any instructions provided there.
 
-## Setting up the Environment and Running the Platform Sample
+## <a id="chapter-03"></a>Setting up the Environment and Running a Platform Sample with ForgeOps
+
+[Back to the Top](#top)
 
 The easiest way to establish a ForgeRock Identity Platform development environment is downloading and installing the [ForgeRock DevOps and Cloud Deployment](https://github.com/ForgeRock/forgeops) example (ForgeOps), and running it in a [Minikube](https://kubernetes.io/docs/setup/minikube/) instance.
 
@@ -118,7 +143,9 @@ As you go through the guide and arrive at:
 
 At this point, Skaffold should build and deploy your platform sample. If it fails on the first attempt, sometimes just trying it again helps. If there are persistent problems with the deployment, try [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) cleanly and consult with the [Troubleshooting Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-troubleshoot) section of the Guide.
 
-## Developing Script Files
+## <a id="chapter-04"></a>Developing Script Files in ForgeOps
+
+[Back to the Top](#top)
 
 IDM and IG allow to define scripts in separate files, which may prove more convenient for script development in some cases and provides additional options for debugging.
 
@@ -379,7 +406,7 @@ curl -k -X POST \
 
 #### Debugging
 
-While working on a script (file) you may have an option to use a debugger. We will provide an example of the debugging process based on a popular IDE for developing in Java and Groovy, [IntelliJ IDEA](https://www.jetbrains.com/idea/). You can check out details on setting debugging environment in [IntelliJ's docs](https://www.jetbrains.com/help/idea/creating-and-editing-run-debug-configurations.html), but the general steps are outlined below:
+While working on a script file you may have an option to use a debugger. We will provide an example of the debugging process based on a popular IDE for developing in Java and Groovy, [IntelliJ IDEA](https://www.jetbrains.com/idea/). You can check out details on setting debugging environment in [IntelliJ's docs](https://www.jetbrains.com/help/idea/creating-and-editing-run-debug-configurations.html), but the general steps are outlined below:
 
 1. Open your ForgeOps clone in IntelliJ.
 
@@ -587,8 +614,6 @@ You can confirm presence of the IG pod in your deployment, the pod that starts w
 kubectl get pods | grep ig-
 ig-64895df56-cj6bc       1/1     Running     0          110m
 ```
-
-
 
 ### Scripts in IG
 
