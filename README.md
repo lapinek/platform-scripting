@@ -1,56 +1,7 @@
 
 # Scripting in ForgeRock Platform Components
 
-## Plan
-
-Need to define the series, so that the scope of the first article is outlined.
-
-Chapters:
-
-1. What scripts can be used for?
-2. Where are they located?
-3. What data do they have access to? (For example echo.js)
-4. Debugging and logging.
-
-1. AM
-
-    1. JVM
-    1. No file reference option
-
-1. IG
-
-    1. Multiline script as an array
-    1. Access to JVM and API
-
-1. IDM
-
-    1. API: create, read, etc., request/response object
-
-
-1. Suggested Example
-
-    1. Make HTTP request to a service
-    1. Location, Syntax, and Examples
-    1. Summary Table
-    1. Differences in Context, Use of the Scripts
-
-1. Questions
-
-    1. Use case for each component? Or abstract from use cases and focus on the script environment?
-    1. Full implementation details (that is, step-by-step functional example) or just key concepts? (No)
-    1. How not to repeat existing docs and reference them efficiently?
-    1. Should we cover IG Studio?
-    1. Scripts' security.
-    1. AM
-
-        1. Client-side (async) and server-side data exchange.
-
-1. Follow Ups
-
-    1. Debug logger in IDM
-    1. Debug logger in IG
-
-# Exploration
+## Proem
 
 ForgeRock Identity Platform components, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with scripts written in JavaScript and Groovy.
 
@@ -66,9 +17,9 @@ Introduction to scripting in ForgeRock components and additional references to f
 
 * To learn about scripting in IDM, you can start with the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter of IDM's Integrator's Guide.
 
-    From there, [Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-config) chapter is referenced, which is followed by [Calling a Script From a Configuration File](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-call) describing how a script could be used in different IDM contexts.
+    From there, [Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-config) chapter is referenced, which is followed by [Calling a Script From a Configuration File](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-call), which describes how a script could be used in different IDM contexts.
 
-    The scripting environment is further explained in the [Scripting Reference]() chapter of the Guide.
+    The scripting environment is further explained in the [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#appendix-scripting) chapter of the Guide.
 
     Information about scripting in IDM is also present in ForgeRock [Knowledge Base](https://backstage.forgerock.com/knowledge/kb/home). In particular, [FAQ: Scripts in IDM/OpenIDM](https://backstage.forgerock.com/knowledge/kb/article/a29088283) could serve as a good initial reference.
 
@@ -80,73 +31,120 @@ Introduction to scripting in ForgeRock components and additional references to f
 
 ## Examples
 
-Across documentation, there are meaningful, component specific examples of how the scripts could be employed.
+Across documentation, there are meaningful, component specific examples of how the scripts could be employed. Some of them will be brought up later in this document.
 
-For a quick overview of scripting in AM, IDM, and IG, we will perform a simple scripted operation in a script associated with an event in the corresponding component. This will allow us to depict some similarities and some differences in how scripting can be approached in different ForgeRock components. The script will perform a network call to an external service and print or log the results.
+For a quick overview of scripting in AM, IDM, and IG, we will make our own example, a simple, generic script associated with an event in the corresponding component. This will allow us to depict some similarities and some differences in how scripting can be approached in different ForgeRock components, and hopefully create useful background for further explorations. The script will perform a network call to an external service and print, log, or capture the results.
 
-But first, we will need an environment for deploying all three components.
+But first, we will need an environment for deploying all three components, an environment to run this script in.
 
-## Setting up the Platform Environment
+> If you'd like to run ForgeRock platform components in a different environment, you may want to skip the next section, and make necessary adjustments to the instructions provided there.
 
-The easiest way to establish a ForgeRock Identity Platform development environment is installing the [ForgeRock DevOps and Cloud Deployment](https://github.com/ForgeRock/forgeops) sample (forgeops) and running it in a [Minikube](https://kubernetes.io/docs/setup/minikube/) instance. ForgeRock documentation supplies detailed instructions on how to set it up in its [DevOps Developer's Guide: Using Minikube](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-implementation-env).
+## Setting up the Environment and Running the Platform Sample
 
-> You may also want to [Start Here](https://backstage.forgerock.com/docs/forgeops/6.5/start-here/) for getting familiar with the ForgeRock DevOps concepts.
+The easiest way to establish a ForgeRock Identity Platform development environment is downloading and installing the [ForgeRock DevOps and Cloud Deployment](https://github.com/ForgeRock/forgeops) example (ForgeOps), and running it in a [Minikube](https://kubernetes.io/docs/setup/minikube/) instance.
 
-Further instructions will assume that the ForgeRock platform software is running in Minikube in the `default` namespace.
+The easiest way to accomplish this task is to follow [DevOps Developer's Guide: Using Minikube](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-implementation-env) article in ForgeRock documentation. You may, however, want to [Start Here](https://backstage.forgerock.com/docs/forgeops/6.5/start-here/) for getting familiar with the ForgeOps concepts.
 
-> This means there is no namespace explicitly created with the `kubectl create namespace` _`my-namespace`_ command) and you set your Minikube context to the default one:
->
-> ```bash
-> kubectl config set-context --current --namespace=default
-> ```
->
-> We only need this convention to agree on the URLs used in examples.
+Further instructions will assume that the ForgeRock platform software is running in Minikube. In addition, we will assume the file structure that exists in the ForgeOps project at the time of this writing.
 
-Furthermore, we will assume the file structure that exists in the `forgeops` project at the time of writing, and unless specifically noted, base our examples on the version `7.0` of the platform.
+As you go through the guide and arrive at:
 
-> The scripting environment didn't change substantially between versions `6.5` and `7.0` and you should be able to use the same scripts in either of those.
+* [Creating a Namespace](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-implementation-env-namespace)
 
-In this setup, the custom configuration for the ForgeRock Identity Platform components, which the some of the scripts are a part of, is stored and versioned under the `/path/to/forgeops/config` directory, which is to serve as a master copy. However, the running platform sample reads custom configuration from a "staging area", under the `/path/to/forgeops/docker/7.0` directory and the custom configuration files in the staging area are not under version control. This means that prior the sample is deployed, they need to be copied to the staging area in order for the custom settings to take effect and for the (versioned) custom scripts to become available in the running platform sample.
+    The Guide recommends [creating a namespace](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-implementation-env-namespace) in your Minikube cluster—for reasons of easier maintenance—so that you wouldn't have to remove obsolete objects by hand.
 
-> Learn more [About Data Used by the Platform](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-data) and its [Configuration Profiles](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-data-profiles) in the ForgeOps documentation.
+    > Otherwise, per [official Kubernetes recommendation](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/#when-to-use-multiple-namespaces), there should be no need for custom namespaces in a single user development environment that Minikube provides.
+    >
+    > The default namespace will provide the scope for your Kubernetes objects. You will not need to set a specific namespace in your current Minikube context, and you will not have to make changes in your trackable deployment files as described in the [Deploying the Platform](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-implementation-deploy) chapter of the guide.
 
-As described in the [Managing Configurations](https://github.com/ForgeRock/forgeops/blob/master/README.md#managing-configurations) section of the main `forgeops` README file, you could use `/path/to/forgeops/bin/config.sh` script to manage configuration data. For example, to copy configuration for the version 7.0 of the ForgeRock Identity Platform stored under the `cdk` profile, you could run:
+    In this writing, we will follow the recommendation. We will assume _`my`_ namespace _was_ created.
 
-```bash
-./bin/config.sh --profile=cdk --version=7.0 init
-```
+    <!--
+    Not sure about this section, as it might introduce unnecessary confusion. However, being aware of the default seems valuable information to consider. At the same time, just ignoring the guide that was recommended to follow may be confusing in itself too.
+    -->
 
-In this case the versioned configuration files, kept in `/path/to/forgeops/config/7.0/cdk`, will be copied to the `/path/to/forgeops/docker/7.0` directory and the custom script content will be a part of the copied content. The settings saved under `/path/to/forgeops/docker/7.0` directory, the staging area, will take precedence over the default configuration (from the docker images), when the  containers are deployed. The other commands that the `config.sh` script accepts may extract the platform configuration from the running containers and save it back to the master directory. This latter flow helps to preserve configurations changes made to the running platform sample with external tools—for example, via a platform component REST interface.
+* [To Deploy the ForgeRock Identity Platform](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-implementation-deploy-steps)
 
-The script _files_, however, are not to be updated directly in the running containers and are not copied back to the master directory with the current implementation of the `config.sh` script.
+    At the time of writing, the recommended workflow for standing up a ForgeRock Identity Platform instance with ForgeOps is using [Kustomize](https://kustomize.io/) and [Skaffold](https://skaffold.dev/). This chapter describes some preparations you need to make before deploying the platform.
 
-Alternatively, the custom configuration can be updated directly in the staging area and copied back to the version-controlled master directory—to be preserved for future deployments.
+    We will use Skaffold in the [development mode](https://skaffold.dev/docs/workflows/dev/), which can detect and redeploy changes in the source code (in the staging area).
 
-At the time of writing, the recommended workflow for instantiating a ForgeRock Identity Platform sample with `forgeops` is using [Kustomize](https://kustomize.io/) and [Skaffold](https://skaffold.dev/). In the [development mode](https://skaffold.dev/docs/workflows/dev/), Skaffold will rebuild and redeploy the sample if changes in the source code are detected.
+    We will need an IG instance for our scripting excursion. For that, we will deploy a particular profile, `oauth2`, because at the moment it is the only one in ForgeOps that deploys IG by default. The `oauth2` profile only exists for the version 6.5 of the platform in ForgeOps; as this version is not the default one (7.0 is), we will need to specify it explicitly too.
 
-Redeploying may take considerable time, but the script files are read by the ForgeRock components from the container's file system and the sample does not need to be redeployed in order for any changes in the files to take effect. Hence, if you script source is a file, you may choose not to rebuild and redeploy your sample automatically, and instead only to copy the changed files into the corresponding container. One way to make this process automatic is to use Skaffold's [File Sync](https://skaffold.dev/docs/pipeline-stages/filesync/) feature—by adding the `sync` section to your development `yaml` file. For example, you can copy IDM scripts from the `script` directory in your source flies into the corresponding location in the running container:
+    > For the purposes of this demo, the scripting environment didn't change substantially between versions `6.5` and `7.0`.
+    <!--
+    >
+    > At the time version 7.0 is released, there may be additional support for scripting new functionality. For example, there may be new scripted nodes for the authentication trees.
+    -->
+
+    Now, to the steps described in the chapter and adjustment we will make for our example:
+
+    1. Your custom namespace (unless you stayed with the `default` one) will need to be set in the `kustomization.yaml` file under `/path/to/forgeops/kustomize/overlay/6.5/oauth`.
+
+    2. Choose version 6.5 and `oauth2` configuration profile to initiate your deployment with.
+
+        ```bash
+        $ cd /path/to/forgeops
+        $ bin/config.sh init --version 6.5 --profile oauth2
+        ```
+
+        > As explained in the [Configuration Data](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-data-configuration) chapter of the Guide, deployment configurations in ForgeOps, which scripts may be a part of, are stored and versioned under the `/path/to/forgeops/config` directory, which serves as a master copy. The running platform sample reads custom configuration from a "staging area", under the `/path/to/forgeops/docker` directory and the staging area is not under version control. This means that prior to the sample being deployed, a configuration needs to be copied to the staging area in order for the custom settings to to become available in the running platform sample.
+        >
+        > As described in the [Managing Configurations](https://github.com/ForgeRock/forgeops/blob/master/README.md#managing-configurations) section of the main ForgeOps README, you can use `/path/to/forgeops/bin/config.sh` script to manage configurations in the running containers, the staging area, and the master directory. In this case, we use the config script to copy `oauth2` profile to the staging area. The settings saved in the staging area will take precedence over the default configuration (from the docker images), when the  containers are deployed.
+        >
+        > The other commands for the `config.sh` script may extract the platform configuration from the running containers and save it back to the staging area and the master directory. This allows to preserve configurations changes made to the running platform sample made, for example, via the component's REST or user-friendly graphic interface.
+        >
+        > As an option, a custom configuration can be updated directly in the staging area and copied back to the version-controlled master directory—to be preserved for future deployments.
+        >
+        > Keep in mind, however, that the script _files_ are not to be updated directly in the running containers and are not subject to be copied back to the master directory in the current implementation of the `config.sh` script.
+
+    3. By default, if no configuration file is specified in the command line, Skaffold will read its workflow from `skaffold.yaml`. If your configuration file name is different, you will need to specify it with the `-f` or `--filename` parameter.
+
+        In ForgeOps, `skaffold-6.5.yaml` provides deployment details for the version 6.5 of the platform. We will specify this file when executing the Skaffold command.
+
+        > You can also use `skaffold-6.5.yaml` as a template for your custom copies of the configuration.
+
+        We will also specify `oauth2` profile (defined in this file), for which we have copied configuration into the staging area.
+
+        In addition, to eliminate dependency on time it takes for the deployment to stabilize, we will disable Skaffold [healthcheck feature](https://skaffold.dev/docs/workflows/ci-cd/#waiting-for-skaffold-deployments-using-healthcheck) by using the `status-check` flag set to `false`.
+
+        > As of Skaffold [1.4.0](https://github.com/GoogleContainerTools/skaffold/releases/tag/v1.4.0), the deadline for status check is two minutes, which may not be enough for a typical ForgeOps deployment. As of version [1.6.0](https://github.com/GoogleContainerTools/skaffold/releases/tag/v1.6.0), the status check is on by default.
+
+        The final command should look like the following:
+
+        ```bash
+        $ skaffold dev --filename=skaffold-6.5.yaml --profile=oauth2 --status-check=false
+        ```
+
+At this point, Skaffold should build and deploy your platform sample. If it fails on the first attempt, sometimes just trying it again helps. If there are persistent problems with the deployment, try [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) cleanly and consult with the [Troubleshooting Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-troubleshoot) section of the Guide.
+
+## Developing Script Files
+
+IDM and IG allow to define scripts in separate files, which may prove more convenient for script development in some cases and provides additional options for debugging.
+
+In the [development mode](https://skaffold.dev/docs/workflows/dev/), by default, Skaffold will rebuild and redeploy the sample if changes in the source code are detected in the staging area.
+
+Redeploying may take considerable time. If a script is defined in a separate file, it is read directly from the container's file system when executed. The component does not need to be rebuilt and redeployed in order for changes in the file to take effect; the file can simply be copied into the container.
+
+Thus, when trying out file based scripts, you may choose not to rebuild and redeploy your platform sample automatically, and instead only to copy the changed files into the corresponding container.
+
+One way to make this process automatic is to use Skaffold's [File Sync](https://skaffold.dev/docs/pipeline-stages/filesync/) feature—by adding the `sync` section to your development `yaml` file. For example, you can copy IDM scripts from the `script` directory in your staging area into the corresponding location in the running container:
 
 ```yaml
 build:
-  artifacts:
-  # . . .
-  - image: idm
+artifacts:
+# . . .
+- image: idm
     context: docker/7.0/idm
     sync:
-      manual:
+    manual:
         - src: 'script/*'
-          dest: script
-          strip: 'script/'
-  # . . .
+        dest: script
+        strip: 'script/'
+# . . .
 ```
 
-> According to the Skaffold docs and the examples referenced there, the `strip` parameter should not be necessary in this case, as the files from the source directory, `docker/7.0/idm/script`, should be copied to the corresponding `script`  directory under the `<WORKDIR>` specified in the upstream `Dockerfile` (for example, in IDM's case, `/opt/openidmin/script`). However, at the time of writing, the beta version of the `File Sync` functionality copies the entire structure of the specified source into the destination folder; ending up with `/opt/openidmin/script/script` created in the container. The `strip` directive allows to specify directory hierarchy to be discarded while copying.
-
-By default, Skaffold will read its configuration from `skaffold.yaml`, but you can keep a separate copy of this file for your development and make configuration changes in there. Then, specify this copy explicitly when starting Skaffold in the development mode, with the `--filename` flag.  For example:
-
-```bash
-skaffold dev --filename='skaffold-dev.yaml'
-```
+> According to the Skaffold docs and the examples referenced there, the `strip` parameter should not be necessary in this case, as the files from the source directory—for example, `docker/6.5/idm/script`—should be copied to the corresponding `script`  directory under the `<WORKDIR>` specified in the upstream `Dockerfile`, which in this case is `/opt/openidmin/script`. However, at the time of writing, the beta version of the `File Sync` functionality copies the entire structure of the specified source into the destination folder. This means that without the `strip` parameter one may end up with a `/opt/openidmin/script/script` path created in the container. The `strip` directive allows specify directory hierarchy to be discarded while copying.
 
 To prevent automatic rebuilding and redeploying, use the `--auto-build` and `--auto-deploy` options set to `false` in the development mode. You may also want to set the `--verbosity` option to the `debug` or `info` level to receive more information about the actions Skaffold performs and the results it achieves. For example:
 
@@ -184,6 +182,8 @@ curl -X POST http://localhost:50052/v1/execute \
 > Using the `Paste Raw Text` option, you can import cURL commands into [Postman](https://www.postman.com/), if that is your preferred environment for making arbitrary network requests. Explicitly adding the "Content-Type: text/plain" header will instruct Postman to use `raw` body for sending the data. In the terminal, this header is not needed.
 >
 > When you execute the command and the system does not redeploy immediately, it probably means that it didn't detect any changes in the file system that were worth of the effort. When such changes occur in the watched locations after executing the command, deployment will be initiated.
+
+Finally, remember that the script files are not expected to be edited directly in the containers. Thus, the scripts files are not copied by `bin/config.sh save` from the containers to the staging area and more importantly, they are not copied to the master directory by by `bin/config.sh save`. This means, that if you changing script files in staging area, you will need to remember to copy good ones back to the master directory manually.
 
 ## Scripting in the ForgeRock Components
 
@@ -285,7 +285,7 @@ You can change the minimum interval setting (in milliseconds) before you deploy 
 
 #### Evaluating Scripts
 
-You can try out your script by validating it, as described in the [IDM Docs](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-endpoint). In order to be able to access the `/script` endpoint you will need to authorize your client for making request to the IDM `/script` endpoint. In `forgeops`, you would need to provide an access token from `amadmin` user. The token will need to be associated with the `openid` scope.
+You can try out your script by validating it, as described in the [IDM Docs](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-endpoint). In order to be able to access the `/script` endpoint you will need to authorize your client for making request to the IDM `/script` endpoint. In ForgeOps, you would need to provide an access token from `amadmin` user. The token will need to be associated with the `openid` scope.
 
 For this example, we will describe how you can create `scripts` OAuth 2.0 client in [ForgeRock Access Management](https://www.forgerock.com/platform/access-management) (AM), which can be performed with the following cURL command:
 
@@ -381,7 +381,7 @@ curl -k -X POST \
 
 While working on a script (file) you may have an option to use a debugger. We will provide an example of the debugging process based on a popular IDE for developing in Java and Groovy, [IntelliJ IDEA](https://www.jetbrains.com/idea/). You can check out details on setting debugging environment in [IntelliJ's docs](https://www.jetbrains.com/help/idea/creating-and-editing-run-debug-configurations.html), but the general steps are outlined below:
 
-1. Open your `forgeops` clone in IntelliJ.
+1. Open your ForgeOps clone in IntelliJ.
 
 1. Select "Run" > "Edit Configurations...".
 
@@ -738,7 +738,7 @@ Nevertheless, scripts work at a low level, and there are similarities:
 
 * All three components support scripting in Groovy.
 
-* AM and IDM use [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino) (scripting engine) to support server-side JavaScript. The server-side scripts
+* AM and IDM use [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino)—the scripting engine having access to Java functionality provided by the corresponding component—to support server-side JavaScript.
 
 Now, to differences.
 
@@ -746,11 +746,11 @@ Now, to differences.
 
 * Languages
 
-    IG, currently, does not support JavaScript.
+    AM allows for client-side scripts, which run in the browser environment. The server-side scripts, running on Rhino, can have access to data obtained with a client-side script.
 
-    IDM only supports JavaScript on the server side, using Rhino.
+    IDM only supports JavaScript on the server side, with Rhino.
 
-    AM allows for client-side scripts, which run in the browser environment. The server-side scripts, running on Rhino, can use data obtained with the client-side ones.
+    IG does currently not support JavaScript.
 
 *
 
@@ -804,6 +804,58 @@ Now, to differences.
 
 ***
 ***
+***
+
+
+## Plan
+
+Need to define the series, so that the scope of the first article is outlined.
+
+Chapters:
+
+1. What scripts can be used for?
+2. Where are they located?
+3. What data do they have access to? (For example echo.js)
+4. Debugging and logging.
+
+1. AM
+
+    1. JVM
+    1. No file reference option
+
+1. IG
+
+    1. Multiline script as an array
+    1. Access to JVM and API
+
+1. IDM
+
+    1. API: create, read, etc., request/response object
+
+
+1. Suggested Example
+
+    1. Make HTTP request to a service
+    1. Location, Syntax, and Examples
+    1. Summary Table
+    1. Differences in Context, Use of the Scripts
+
+1. Questions
+
+    1. Use case for each component? Or abstract from use cases and focus on the script environment?
+    1. Full implementation details (that is, step-by-step functional example) or just key concepts? (No)
+    1. How not to repeat existing docs and reference them efficiently?
+    1. Should we cover IG Studio?
+    1. Scripts' security.
+    1. AM
+
+        1. Client-side (async) and server-side data exchange.
+
+1. Follow Ups
+
+    1. Debug logger in IDM
+    1. Debug logger in IG
+
 ***
 
 References:
