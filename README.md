@@ -5,15 +5,14 @@ ForgeRock Identity Platform components, [Access Management](https://www.forgeroc
 
 ## Contents
 
-* [Where to Start](#chapter-01)
-* [A Look Into the Platform Scripting](#chapter-02)
-* [Setting up the Environment and Running a Platform Sample with ForgeOps](#chapter-03)
-* [Developing Script Files in ForgeOps](#chapter-04)
-* [Scripting in the ForgeRock Components](#top)
-* [A Script Implementation](#top)
-* [AM](#top)
-* [IDM](#top)
-* [IG](#top)
+* [Where to Start](#chapter-010)
+* [A Look Into the Platform Scripting](#chapter-020)
+* [Setting up the Environment and Running a Platform Sample with ForgeOps](#chapter-030)
+* [Developing Script Files in ForgeOps](#chapter-040)
+* [Scripting in ForgeRock Components](#chapter-050)
+* [ForgeRock Access Management (AM)](#top)
+* [ForgeRock Identity Management (IDM)](#top)
+* [ForgeRock Identity Gateway (IG)](#top)
 * [Similarities and Differences](#top)
     * [Supported Languages](#top)
     * [Script Locations](#top)
@@ -22,7 +21,7 @@ ForgeRock Identity Platform components, [Access Management](https://www.forgeroc
 * [Summary Table](#top)
 * [Conclusion](#top)
 
-## <a id="chapter-01"></a>Where to Start
+## <a id="chapter-010"></a>Where to Start
 
 [Back to the Top](#top)
 
@@ -52,7 +51,7 @@ Introduction to scripting in ForgeRock components and additional references to f
 
     Across documentation, there are meaningful, component and content specific examples of how the scripts could be employed. Some of them will be referenced later in this document.
 
-## <a id="chapter-02"></a>A Look Into the Platform Scripting
+## <a id="chapter-020"></a>A Look Into the Platform Scripting
 
 [Back to the Top](#top)
 
@@ -62,7 +61,7 @@ But first, we will need an environment for deploying all three components, an en
 
 > If you already have ForgeRock platform components running, you may want to skip the next section and make necessary adjustments to any instructions provided there.
 
-## <a id="chapter-03"></a>Setting up the Environment and Running a Platform Sample with ForgeOps
+## <a id="chapter-030"></a>Setting up the Environment and Running a Platform Sample with ForgeOps
 
 [Back to the Top](#top)
 
@@ -143,7 +142,7 @@ As you go through the guide and arrive at:
 
 At this point, Skaffold should build and deploy your platform sample. If it fails on the first attempt, sometimes just trying it again helps. If there are persistent problems with the deployment, try [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) cleanly and consult with the [Troubleshooting Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-troubleshoot) section of the Guide.
 
-## <a id="chapter-04"></a>Developing Script Files in ForgeOps
+## <a id="chapter-040"></a>Developing Script Files in ForgeOps
 
 [Back to the Top](#top)
 
@@ -216,15 +215,182 @@ curl -X POST http://localhost:50052/v1/execute \
 
 Finally, remember that the script files are not expected to be edited directly in the containers. Thus, the scripts files are not copied by `bin/config.sh export` from the containers to the staging area and more importantly, they are not copied to the master directory with `bin/config.sh save`. This means that if you are changing script files in your staging area, you will need to remember to copy the good ones back to the master directory manually in order for them to be versioned.
 
-## Scripting in the ForgeRock Components
+## <a id="chapter-050"></a>Scripting in the ForgeRock Components
 
-To compare environments provided by ForgeRock components, we will create a script that will make an HTTP call to an online service and receive a response in the form of JSON. For this purpose, as an example, we will visit a dummy API `http://dummy.restapiexample.com/api/v1/employees` endpoint.
+[Back to the Top](#top)
 
-> If you use ForgeRock Identity Platform scripts to access an API over encrypted connection, make sure the individual components' Java trusts the underlying SSL/TLS certificate.
+To compare environments provided by ForgeRock components, we will create a script that will make an HTTP call to an online service and receive a response in the form of JSON. For this purpose, as an example, we will visit a dummy API employee record at `http://jsonplaceholder.typicode.com/users/1`. This endpoint returns JSON, which the script _could_ evaluate against other data provided by the script's environment.
 
-## Scripting in [ForgeRock Identity Management](https://www.forgerock.com/platform/identity-management) (IDM)
+> If you use server-side scripts to access an API over encrypted connection, make sure Java the script engine is running on trusts the underlying SSL/TLS certificate.
 
-### Basics
+## <a id="chapter-060"></a>[ForgeRock Access Management](https://www.forgerock.com/platform/identity-management) (AM)
+
+[Back to the Top](#top)
+
+AM documentation can be found at [https://backstage.forgerock.com/docs/am](https://backstage.forgerock.com/docs/am).
+
+AM provides authentication and authorization services, and custom scripts can be used to augment the default functionality.
+
+### Managing Scripts in AM
+
+The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/#manage-scripts) chapter in AM's docs shows how the scripts can be managed via REST and command line interfaces. This may be the most efficient way to manage scripts in automatically maintained environments; for example, in production deployments.
+
+In addition, AM console provides a visual and easy to use interface for managing scripts and applying them to authentication and authorization events. We will use the console to apply a script to an authentication procedure in AM.
+
+### Client-Side Scripts
+
+When used for authentication in the front channel, AM allows for creating client-side scripts that would be executed in the user agent.
+
+The use case for a client-side script is collecting information about the user agent's properties and its environment: [Geolocation](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/geolocation), IP, and whatever else that could be collected with a custom script running in a browser. Thus, the script needs to be written in JavaScript compatible with the browser.
+
+From the client side, the data collected with the script can be submitted to the server and become available to the server-side scripts involved in the same authentication procedure.
+
+### Server-Side Scripts
+
+The decision making process on user identification and access management can be aided with the server-side scripts. The server-side scripts can be written in Groovy or JavaScript running in [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino).
+
+The server-side scripts can accept data from the client side via a well-know variable.
+
+### Authentication Trees and Authentication Chains
+
+AM supports two basic authentication workflows: `trees` and `chains`. The latter approach allows for use of a client-side script defined directly in AM console.
+
+To demonstrate a scripted authentication with the AM's built-in means, we will use an authentication chain configured in the Top Level Realm.
+
+> The Top Level Realm is provided by default during AM installation. You can find more information about [Setting Up Realms](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-realms) in the docs.
+
+### Scripting in AM Console
+
+In the default AM configuration, there is already a set of client-side and server-side scripts to work together as a part of an authentication module—the elementary unit of authentication chains. Authentication modules are described in in the docs, under AM 6.5 › Authentication and Single Sign-On Guide > [Device ID (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints).
+
+The included scripts have many lines. To outline basic principles of scripting in AM, we will use simpler scripts.
+
+> You can find more about authentication in AM's in its [Authentication and Single Sign-On Guide](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html).
+
+### Example
+
+In the following example, we will extend an authentication procedure used by AM to verify user identity.
+
+1. The Authentication Chain Example
+
+    1. The Administrative Interface
+
+        To sign in with administrative configuration, navigate to your AM instance `/console` path. For example:
+
+        https://default.iam.example.com/am/console/
+
+        > AM allows to use separate authentication chains for administrative and non-administrative users. The choice can be made in AM's administrative console under Realms > Top Level Realm > Authentication > Settings > Core—by selecting desired values for Administrator Authentication Configuration and Organization Authentication Configuration inputs.
+        If you don't use the `/console` path, the default _Organization Authentication Configuration_ chain will be used, regardless of whether the actual user is an administrator or not.
+        >
+        > This may not matter if both options point to the same authentication chain.
+
+    1. The Client-Side Script
+
+        1. Navigate to Top Level Realm > Scripts.
+
+            You will see number of predefined scripts, some of which can serve as templates for the new ones.
+
+        1. Select + New Script.
+
+            In the New Script dialog, provide Name and select Client-side Authentication for the Script Type input. For example:
+
+            * Name:  Scripted Module - Client Side Example
+            * Script Type: Client-side Authentication
+
+        1. Select the Create button.
+
+            In the next dialog, with the new script properties, populate the Script input with the following JavaScript code:
+
+            * Script:
+
+            ```javascript
+            /*
+            * Object to hold the data to be passed to the server-side processing.
+            *
+            * The name of this object can be any valid variable name.
+            */
+            var data = {};
+
+            /*
+            * Script element for loading an external library.
+            *
+            * When the script is loaded, it will make a request to an external source to obtain the client's IP information.
+            *
+            * The information, received as a JSON object, is then saved as a string in the
+            * value of the `output` input in the form provided on the client side automatically. The value will become available to the server-side script as the `clientScriptOutputData` javascript variable.
+            */
+            var script = document.createElement('script');
+
+            script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';
+            script.onload = function (e) {
+                $.getJSON('https://ipgeolocation.com/?json=1', function (json) {
+                clientScriptOutputData.ip = json;
+                    output.value = JSON.stringify(data);
+
+                    submit();
+                });
+            }
+
+            document.getElementsByTagName('head')[0].appendChild(script);
+            /*
+            *
+            * To allow for the asynchronous script operation to complete,
+            * automatic submission of the form on the page is delayed via a setting that takes milliseconds.
+            */
+            autoSubmitDelay = 4000;
+            ```
+
+            The language for a client-side script is always JavaScript, for the script's run time environment is assumed to be a browser of some sort.
+
+        1. Select the Save Changes button.
+
+        The expected result returned from the call to `https://ipgeolocation.com/?json=1` is a JSON containing client IP data. The data might look like the following:
+
+        ```json
+        {
+            "ip": "73.67.228.195",
+            "city": "Portland",
+            "region": "Oregon",
+            "country": "United States",
+            "coords": "45.547200,-122.641700",
+            "asn": "AS7922, Comcast Cable Communications, LLC",
+            "postal": "97212",
+            "timezone": "America/Los_Angeles"
+        }
+        ```
+
+        The script uses stringified form of this data to populate the `output` input in the form on the page where the client-side script is running. When the form is submitted, the value of the input will become available for the server-side scripts as the `clientScriptOutputData` variable.
+
+    1. The Server-Side Script
+
+        You can read about [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) in the docs.
+
+        The script used in the described module, the `Scripted Module - Server Side` script, is included in AM and can be used directly, by being included in an authentication module. But it also serve as a starting template for all new scripts of type "Server-side Authentication". In our example, we will replace it with functionality that relies on the results delivered by our client-side script.
+
+        1. Navigate back to Top Level Realm > Scripts.
+
+        1. Select + New Script.
+
+            In the New Script dialog, provide Name and this time, select Server-side Authentication for the Script Type input. For example:
+
+            * Name:  Scripted Module - Server Side Example
+            * Script Type: Server-side Authentication
+
+        1. Select the Create button.
+
+            In the following dialog, for a server-side script, you will be given a choice of language: JavaScript or Groovy. This time we will leave the default JavaScript option selected.
+
+            The functional part of the script could be anything that may work with the available data:
+
+            1. User record properties.
+            1. Request properties.
+            1. In our case, we also have a piece of information coming from the client side—the IP and some related data, received from an online provider.
+
+            At this point, we can compare this IP with a list of allowed IP associated with the user, check the zip code in client-side data with the one in user's postal address, or make a call to a service for processing the data.
+
+
+
+## [ForgeRock Identity Management](https://www.forgerock.com/platform/identity-management) (IDM)
 
 Please see [IDM Docs](https://backstage.forgerock.com/docs/idm) for version-specific, comprehensive, and easy to read technical information about the component.
 
@@ -259,7 +425,7 @@ The locations that IDM is aware of and will read a script file from are defined 
     }
 ```
 
-We will place the example scripts in the location denoted as `"&{idm.instance.dir}/script"`, which corresponds to `/path/to/idm/script` in the running IDM container and `/path/to/forgeops/docker/7.0/idm/script` directory will be our IDM staging area. You can navigate there and create `example.js` file with the following content:
+We will place the example scripts in the location denoted as `"&{idm.instance.dir}/script"`, which corresponds to `/path/to/idm/script` in the running IDM container and `/path/to/forgeops/docker/6.5/idm/script` in the staging area. You can navigate there and create `example.js` file with the following content:
 
 ```javascript
 (function () {
@@ -287,7 +453,7 @@ Both scripts expect `params` argument; we will provide it as a JSON at the time 
 
 ```JSON
 params = {
-    "url": "http://dummy.restapiexample.com/api/v1/employees",
+    "url": "http://jsonplaceholder.typicode.com/users/1",
     "method": "GET"
 }
 ```
@@ -373,7 +539,7 @@ curl -k -X POST \
     "file": "example.js",
     "globals": {
         "params": {
-            "url": "http://dummy.restapiexample.com/api/v1/employees",
+            "url": "http://jsonplaceholder.typicode.com/users/1",
             "method": "GET"
         }
     }
@@ -399,7 +565,7 @@ curl -k -X POST \
     "file": "example.groovy",
     "globals": {
         "params": {
-            "url": "http://dummy.restapiexample.com/api/v1/employees",
+            "url": "http://jsonplaceholder.typicode.com/users/1",
             "method": "GET"
         }
     }
@@ -499,7 +665,7 @@ As described in the [Calling a Script From a Configuration File](https://backsta
                 "source" : "import org.forgerock.openidm.action.*\n\ndef result = openidm.action(\"external/rest\", \"call\", params)\n\nprintln result\n\nresult",
                 "globals" : {
                     "params" : {
-                        "url" : "http://dummy.restapiexample.com/api/v1/employees",
+                        "url" : "http://jsonplaceholder.typicode.com/users/1",
                         "method" : "GET"
                     }
                 }
@@ -545,79 +711,18 @@ Running the differences will reveal the way your multiline script is preserved i
 +                "type" : "groovy",
 +                "globals" : {
 +                    "params" : {
-+                        "url" : "http://dummy.restapiexample.com/api/v1/employees",
++                        "url" : "http://jsonplaceholder.typicode.com/users/1",
 +                        "method" : "GET"
 +                    }
 +                },
 +                "source" : "import org.forgerock.openidm.action.*\n\ndef result = openidm.action(\"external/rest\", \"call\", params)\n\nprintln result\n\nresult"          },
 ```
 
-This can serve as an illustration for creating other inline scripts in the configuration files.
-
-##### Notes
-
-###### From IDM Integrator's Guide:
-
-* [5.11.1.2. Custom Progressive Profile Conditions](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#progressive-profile-queries-scripts):
-
-    > While you can also reference metadata for scripts, you can't check for all available fields, as there is no outer object field. However, you can refer to fields that are part of the user object.
-
-* [6.4.1. Running Queries and Commands on the Repository](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#repo-commands)
-
-    > The command can be called from a script.
-
-* [7.7. Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-config)
-
-* [7.8. Calling a Script From a Configuration File](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-call)
-
-* [8.1. Accessing Data Objects By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#data-scripts)
+The overwritten configuration may serve as an example for creating other inline scripts in the configuration files.
 
 ## Scripting in [ForgeRock Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG)
 
 Please see [IG Docs](https://backstage.forgerock.com/docs/ig) for comprehensive coverage of the component.
-
-### IG in ForgeOps
-
-IG is not included in the `cdk` profile we've been using so far. It is used, however, for OAuth 2.0 API protection in the `oauth2` profile in the 6.5 version of the ForgeOps configuration. To have the `oauth2` profile deployed, stop your current deployment with `Ctrl^C` if it is still running in the foreground, or run `skaffold delete` if the deployment is not active in your terminal. Then, clear the persistent volumes with `kubectl delete pvc --all`. Optionally, you can delete your VM with `minikube delete` and [create a new one](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-implementation-env-cluster).
-
-After setting your minikube development environment and before deploying with Skaffold, copy the `oauth2` profile configuration into the staging area. For that, navigate to `/path/to/forgeops` and run:
-
-```bash
-./bin/config.sh init --version 6.5 --profile oauth2
-```
-
-You should see that your staging area has been initialized with the specific configuration for IDM, IG, and AM (via the `amster` pod definition):
-
-```bash
-removing idm configs from docker/6.5
-cp -r config/6.5/oauth2/idm docker/6.5
-
-removing ig configs from docker/6.5
-cp -r config/6.5/oauth2/ig docker/6.5
-
-removing amster configs from docker/6.5
-cp -r config/6.5/oauth2/amster docker/6.5
-cp config/6.5/oauth2/secrets/config/* docker/forgeops-secrets/forgeops-secrets-image/config
-```
-
-Make a copy of the `skaffold-6.5.yaml` file for making configuration changes—such as Skaffold FileSync setup. For example:
-
-```bash
-cp skaffold-6.5.yaml skaffold-dev-6.5.yaml
-```
-
-Now, you can deploy the `oauth2` profile with the following Skaffold command:
-
-```bash
-skaffold dev --filename skaffold-dev-6.5.yaml --profile oauth2
-```
-
-You can confirm presence of the IG pod in your deployment, the pod that starts with the `ig-` prefix, by running:
-
-```bash
-kubectl get pods | grep ig-
-ig-64895df56-cj6bc       1/1     Running     0          110m
-```
 
 ### Scripts in IG
 
@@ -638,7 +743,7 @@ Similar to IDM, IG allows to specify script content either inline in a configura
                     "type": "ScriptableFilter",
                     "config": {
                         "args": {
-                            "url": "http://dummy.restapiexample.com/api/v1/employees",
+                            "url": "http://jsonplaceholder.typicode.com/users/1",
                             "method": "GET"
                         },
                         "type": "application/x-groovy",
@@ -652,7 +757,7 @@ Similar to IDM, IG allows to specify script content either inline in a configura
 }
 ```
 
-The script, functionally very similar to the one we used in IDM, itself might look like the following:
+The script itself, functionally very similar to the one we used in IDM, might look like the following:
 
 ```groovy
 def call = new Request()
@@ -684,7 +789,7 @@ A multiline script can be defined in a configuration file as an array of strings
         "type": "ScriptableFilter",
         "config": {
             "args": {
-                "url": "http://dummy.restapiexample.com/api/v1/employees",
+                "url": "http://jsonplaceholder.typicode.com/users/1",
                 "method": "GET"
             },
             "type": "application/x-groovy",
