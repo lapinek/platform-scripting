@@ -17,6 +17,7 @@ ForgeRock Identity Platform components, [Access Management](https://www.forgeroc
     * [Supported Languages](#top)
     * [Script Locations](#top)
     * [Syntax](#top)
+    * [Script Environment](#top)
     * [Debugging Options](#top)
 * [Summary Table](#top)
 * [Conclusion](#top)
