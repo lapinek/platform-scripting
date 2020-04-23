@@ -16,6 +16,7 @@ ForgeRock Identity Platform components, [Access Management](https://www.forgeroc
 * [Similarities and Differences](#top)
     * [Supported Languages](#top)
     * [Script Locations](#top)
+    * [Script Management](#top)
     * [Syntax](#top)
     * [Script Environment](#top)
     * [Debugging Options](#top)
@@ -216,13 +217,13 @@ curl -X POST http://localhost:50052/v1/execute \
 
 Finally, remember that the script files are not expected to be edited directly in the containers. Thus, the scripts files are not copied by `bin/config.sh export` from the containers to the staging area and more importantly, they are not copied to the master directory with `bin/config.sh save`. This means that if you are changing script files in your staging area, you will need to remember to copy the good ones back to the master directory manually in order for them to be versioned.
 
-## <a id="chapter-050"></a>Scripting in the ForgeRock Components
+## <a id="chapter-050"></a>An Example of Scripting in ForgeRock Components
 
 [Back to the Top](#top)
 
 To compare environments provided by ForgeRock components, we will create a script that will make an HTTP call to an online service and receive a response in the form of JSON. For this purpose, as an example, we will visit a dummy API employee record at `http://jsonplaceholder.typicode.com/users/1`. This endpoint returns JSON, which the script _could_ evaluate against other data provided by the script's environment.
 
-> If you use server-side scripts to access an API over encrypted connection, make sure Java the script engine is running on trusts the underlying SSL/TLS certificate.
+> If you use server-side scripts to access an API over encrypted connection, make sure Java, the script engine is running on, trusts the underlying SSL/TLS certificate.
 
 ## <a id="chapter-060"></a>[ForgeRock Access Management](https://www.forgerock.com/platform/identity-management) (AM)
 
@@ -236,7 +237,7 @@ AM provides authentication and authorization services, and custom scripts can be
 
 The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/#manage-scripts) chapter in AM's docs shows how the scripts can be managed via REST and command line interfaces. This may be the most efficient way to manage scripts in automatically maintained environments; for example, in production deployments.
 
-In addition, AM console provides a visual and easy to use interface for managing scripts and applying them to authentication and authorization events. We will use the console to apply a script to an authentication procedure in AM.
+At the same time, AM console provides a visual and easy to use interface for managing scripts and applying them to authentication and authorization events. We will use the console to apply a script to an authentication procedure in AM.
 
 ### Client-Side Scripts
 
@@ -248,140 +249,139 @@ From the client side, the data collected with the script can be submitted to the
 
 ### Server-Side Scripts
 
-The decision making process on user identification and access management can be aided with the server-side scripts. The server-side scripts can be written in Groovy or JavaScript running in [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino).
+The decision making process on user identification and access management can be aided with the server-side scripts. The server-side scripts can be written in Groovy or JavaScript; with the latter running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino).
 
 The server-side scripts can accept data from the client side via a well-know variable.
 
 ### Authentication Trees and Authentication Chains
 
-AM supports two basic authentication workflows: `trees` and `chains`. The latter approach allows for use of a client-side script defined directly in AM console.
+AM supports two basic authentication workflows: `trees` and `chains`.
 
-To demonstrate a scripted authentication with the AM's built-in means, we will use an authentication chain configured in the Top Level Realm.
+The latter approach allows for use of a client-side script defined directly in AM console. Thus, to observe a scripted authentication with a client-side script you could use an authentication chain configured in the a realm of your choice.
 
-> The Top Level Realm is provided by default during AM installation. You can find more information about [Setting Up Realms](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-realms) in the docs.
+> The Top Level Realm is created by default during AM installation. You can find more information about [Setting Up Realms](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-realms) in the docs.
 
 ### Scripting in AM Console
 
-In the default AM configuration, there is already a set of client-side and server-side scripts to work together as a part of an authentication module—the elementary unit of authentication chains. Authentication modules are described in in the docs, under AM 6.5 › Authentication and Single Sign-On Guide > [Device ID (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints).
+To ensure you sign in AM with administrative configuration, navigate to your AM instance using the `/console` path. For example:
 
-The included scripts have many lines. To outline basic principles of scripting in AM, we will use simpler scripts.
+https://my-namespace.iam.example.com/am/console/
 
-> You can find more about authentication in AM's in its [Authentication and Single Sign-On Guide](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html).
+> AM allows to use separate authentication chains for administrative and non-administrative users. The choice can be made in AM's administrative console under Realms > _Realm Name_ > Authentication > Settings > Core—by selecting desired values for Administrator Authentication Configuration and Organization Authentication Configuration inputs.
+>
+> If you don't use the `/console` path, the default _Organization Authentication Configuration_ chain will be used, regardless of whether the actual user is an administrator or not.
+>
+> This may not matter if both options point to the same authentication chain.
 
-### Example
+### Scripting Authentication Chain
 
-In the following example, we will extend an authentication procedure used by AM to verify user identity.
+The default AM configuration includes a functional set of client-side and server-side scripts, the Device Id (Match) scripts, to work together as a part of an authentication module, which is the elementary unit of an authentication chain. Setting up a Device Id (Match) module is described in details in the docs under AM 6.5 › Authentication and Single Sign-On Guide > [Device Id (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints), along with the related [Device Id (Save)](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-save-hints) one.
 
-1. The Authentication Chain Example
+Instructions for setting up the Device Id (Match) module, the rest of the [Configuring Authentication Chains and Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#configure-authn-chains-modules) chapter, and the [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) one in the  Authentication and Single Sign-On Guide can serve as a reference for setting up a custom authentication chain.
 
-    1. The Administrative Interface
+### A Simple Example
 
-        To sign in with administrative configuration, navigate to your AM instance `/console` path. For example:
+To outline basic principles of scripting authentication chains in AM, we offer an example of extending the authentication flow with a simple client-side script. The script will load an external library and make an HTTP request in order to get the client's IP information.
 
-        https://default.iam.example.com/am/console/
+1. The Client-side Script.
 
-        > AM allows to use separate authentication chains for administrative and non-administrative users. The choice can be made in AM's administrative console under Realms > Top Level Realm > Authentication > Settings > Core—by selecting desired values for Administrator Authentication Configuration and Organization Authentication Configuration inputs.
-        If you don't use the `/console` path, the default _Organization Authentication Configuration_ chain will be used, regardless of whether the actual user is an administrator or not.
-        >
-        > This may not matter if both options point to the same authentication chain.
+    1. Navigate to Realms > _Realm Name_ > Scripts.
 
-    1. The Client-Side Script
+        You will see number of predefined scripts, some of which can serve as templates for the new ones. In particular, Scripted Module - Server Side example script will be the starting point for any added script of the Server-side Authentication type.
 
-        1. Navigate to Top Level Realm > Scripts.
+    1. Select + New Script.
 
-            You will see number of predefined scripts, some of which can serve as templates for the new ones.
+        In the New Script dialog, provide name for your script in the Name input and select Client-side Authentication for the Script Type input. For example:
 
-        1. Select + New Script.
+        * Name:  Scripted Module - Client Side - Example
+        * Script Type: Client-side Authentication
 
-            In the New Script dialog, provide Name and select Client-side Authentication for the Script Type input. For example:
+        Select the Create button.
 
-            * Name:  Scripted Module - Client Side Example
-            * Script Type: Client-side Authentication
+    1. In the next dialog, with the new script properties, populate the Script input with the following JavaScript code:
 
-        1. Select the Create button.
+        * Language: JavaScript (disabled)
 
-            In the next dialog, with the new script properties, populate the Script input with the following JavaScript code:
+            The language for a client-side script is always JavaScript, for the script run time environment is going to be a browser.
 
-            * Script:
+        * Script:
 
             ```javascript
-            /*
-            * Object to hold the data to be passed to the server-side processing.
-            *
-            * The name of this object can be any valid variable name.
-            */
-            var data = {};
-
-            /*
-            * Script element for loading an external library.
-            *
-            * When the script is loaded, it will make a request to an external source to obtain the client's IP information.
-            *
-            * The information, received as a JSON object, is then saved as a string in the
-            * value of the `output` input in the form provided on the client side automatically. The value will become available to the server-side script as the `clientScriptOutputData` javascript variable.
-            */
-            var script = document.createElement('script');
+            var script = document.createElement('script'); // 1
 
             script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';
-            script.onload = function (e) {
+            script.onload = function (e) { // 2
                 $.getJSON('https://ipgeolocation.com/?json=1', function (json) {
                 clientScriptOutputData.ip = json;
-                    output.value = JSON.stringify(data);
+                    output.value = JSON.stringify(data); // 3
 
                     submit();
                 });
             }
 
-            document.getElementsByTagName('head')[0].appendChild(script);
-            /*
-            *
-            * To allow for the asynchronous script operation to complete,
-            * automatic submission of the form on the page is delayed via a setting that takes milliseconds.
-            */
-            autoSubmitDelay = 4000;
+            document.getElementsByTagName('head')[0].appendChild(script); // 1
+
+            autoSubmitDelay = 4000; // 4
             ```
 
-            The language for a client-side script is always JavaScript, for the script's run time environment is assumed to be a browser of some sort.
+            1. Script element for loading an external library.
 
-        1. Select the Save Changes button.
+            2. When the script is loaded, it will make a request to an external source to obtain the client's IP information.
 
-        The expected result returned from the call to `https://ipgeolocation.com/?json=1` is a JSON containing client IP data. The data might look like the following:
+            3. The information, received as a JSON object, is then saved as a string in the `output` input of the form automatically provided on the client side.
 
-        ```json
-        {
-            "ip": "73.67.228.195",
-            "city": "Portland",
-            "region": "Oregon",
-            "country": "United States",
-            "coords": "45.547200,-122.641700",
-            "asn": "AS7922, Comcast Cable Communications, LLC",
-            "postal": "97212",
-            "timezone": "America/Los_Angeles"
-        }
-        ```
+                The expected result returned from the call to `https://ipgeolocation.com/?json=1` is a JSON containing client IP data. The data might look like the following:
 
-        The script uses stringified form of this data to populate the `output` input in the form on the page where the client-side script is running. When the form is submitted, the value of the input will become available for the server-side scripts as the `clientScriptOutputData` variable.
+                ```json
+                {
+                    "ip": "73.67.228.195",
+                    "city": "Portland",
+                    "region": "Oregon",
+                    "country": "United States",
+                    "coords": "45.547200,-122.641700",
+                    "asn": "AS7922, Comcast Cable Communications, LLC",
+                    "postal": "97212",
+                    "timezone": "America/Los_Angeles"
+                }
+                ```
 
-    1. The Server-Side Script
+                The script uses stringified form of this data to populate the `output` input in the form on the page where the client-side script is running. When the form is submitted, the value of the input will become available for the server-side scripts as the `clientScriptOutputData` variable.
 
-        You can read about [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) in the docs.
+            4. To allow for the HTTP call to complete, which is asynchronous operation, automatic submission of the form is delayed via a conventional setting that takes milliseconds.
 
-        The script used in the described module, the `Scripted Module - Server Side` script, is included in AM and can be used directly, by being included in an authentication module. But it also serve as a starting template for all new scripts of type "Server-side Authentication". In our example, we will replace it with functionality that relies on the results delivered by our client-side script.
+            Select the Save Changes button.
 
-        1. Navigate back to Top Level Realm > Scripts.
+    1. You can return to the script and change its definition by navigating to Realms > _Realm Name_ > Scripts >  Scripted Module - Client Side - Example
 
-        1. Select + New Script.
+1. The Server-side Script
 
-            In the New Script dialog, provide Name and this time, select Server-side Authentication for the Script Type input. For example:
+    The `Scripted Module - Client Side` script, included in AM configuration by default, serves as a starting template for all new scripts of type "Server-side Authentication". In our example, we will replace its content with functionality that relies on the results delivered by our client-side script.
 
-            * Name:  Scripted Module - Server Side Example
-            * Script Type: Server-side Authentication
+    1. Navigate back to Realms > _Realm Name_ > Scripts.
 
-        1. Select the Create button.
+    1. Select + New Script.
 
-            In the following dialog, for a server-side script, you will be given a choice of language: JavaScript or Groovy. This time we will leave the default JavaScript option selected.
+        In the New Script dialog, provide a Name. This time, select Server-side Authentication for the Script Type input.
 
-            The functional part of the script could be anything that may work with the available data:
+        For example:
+
+        * Name:  Scripted Module - Server Side - Example
+        * Script Type: Server-side Authentication
+
+        Select the Create button.
+
+    2. In the following dialog, populate the Language and the Script inputs:
+
+        * Language: JavaScript
+
+            For a Server-side script, you will be given a choice of language: JavaScript or Groovy. Leave the default JavaScript option selected for now.
+
+        * Script:
+
+            ```javascript
+            ```
+
+            The functional part of the script could be anything that may work with the available data, which includes:
 
             1. User record properties.
             1. Request properties.
