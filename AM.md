@@ -1,5 +1,9 @@
 # Scripting in [ForgeRock Access Management](https://www.forgerock.com/platform/access-management) (AM)—A Quick Introduction
 
+## Where to Start
+
+> Similar and less complete section, `About Scripting`, exists in AM's [Authentication and Single Sign-On](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#about-scripting), [Authorization](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/#about-scripting), and [Authentication and Single Sign-On Guide](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#about-scripting) Guides.
+
 ## The Key Specifics in Scripting in AM
 
 AM offers an interface in its console for
@@ -131,4 +135,69 @@ In the following example, we will extend an authentication procedure used by AM 
 Introduction to scripting authentication chains:
 https://forum.forgerock.com/2016/02/scripting-in-openam-13/
 
+# Miscellanea
+
+> The Top Level Realm is created by default during AM installation. You can find more information about [Setting Up Realms](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-realms) in the docs.
+
+***
+
+### Scripting in AM Console
+
+To ensure you sign in AM with administrative configuration, navigate to your AM instance using the `/console` path. For example:
+
+https://my-namespace.iam.example.com/am/console/
+
+> AM allows to use separate authentication chains for administrative and non-administrative users. The choice can be made in AM's administrative console under Realms > _Realm Name_ > Authentication > Settings > Core—by selecting desired values for Administrator Authentication Configuration and Organization Authentication Configuration inputs.
+>
+> If you don't use the `/console` path, the default _Organization Authentication Configuration_ chain will be used, regardless of whether the actual user is an administrator or not.
+>
+> This may not matter if both options point to the same authentication chain.
+
+### Scripting in AM
+
+* Get running
+* Interface
+* Select authentication method (tree or chain)
+* Script, client (optional)
+
+    * Access to client information. For example: user agent, geolocation, or IP.
+
+* Script, server-side
+
+    * Access to data from client-side script
+    * Access to user record data
+    * Access to scripting API
+
+
+#### Environment
+
+1. Client-side Scripting
+
+    * Optional
+
+1. Server-side Scripting
+
+#### Goal
+
+1. During authentication, perform scripted action on the client side and pass resulting data to the server-side script.
+
+1. On server side, analyse the data received from the client-side script and make authentication decision.
+
+#### Means
+
+1. Authentication Chains
+
+
+
+1. Authentication Trees
+
+#### Debugging
+
+Set debugging level on a Category or an Instance level: `/am/Debug.jsp`
+
+Debug code with (the default) `logger.error` to reduce output.
+
+Change default `Organization Authentication Configuration` to the custom chain or tree.
+
+Editor: no `find and replace`,  no `Save` in full-screen mode.
 

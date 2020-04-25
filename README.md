@@ -7,12 +7,10 @@ ForgeRock Identity Platform components, [Access Management](https://www.forgeroc
 
 * [Where to Start](#chapter-010)
 * [A Look Into the Platform Scripting](#chapter-020)
-* [Setting up the Environment and Running a Platform Sample with ForgeOps](#chapter-030)
-* [Developing Script Files in ForgeOps](#chapter-040)
 * [An Example of Scripting in ForgeRock Components](#chapter-050)
-    * [ForgeRock Access Management (AM)](#top)
-    * [ForgeRock Identity Management (IDM)](#top)
-    * [ForgeRock Identity Gateway (IG)](#top)
+    * [AM](#top)
+    * [IDM](#top)
+    * [IG](#top)
 * [Similarities and Differences](#top)
     * [Supported Languages](#top)
     * [Script Locations](#top)
@@ -31,9 +29,11 @@ Introduction to scripting in ForgeRock components and additional references to f
 
 * For AM, you can read about scripting in [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts) section of its Development Guide.
 
-    The doc provides information about the contexts to which scripts can be applied, the ways of managing and configuring scripts in AM, and the APIs, objects, and data available for scripts during runtime. The scripting engine configuration is described in the [Scripting Reference](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#global-scripting) part of the doc.
+    The doc provides information about the contexts to which scripts can be applied, the ways of managing and configuring scripts in AM, and the APIs, objects, and data available for scripts during runtime.
 
-    > Similar and less complete section, `About Scripting`, exists in AM's [Authentication and Single Sign-On](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#about-scripting), and [Authorization](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/#about-scripting) Guides.
+    The scripting engine configuration is described in the [Scripting Reference](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#global-scripting) part of the doc.
+
+    In addition, [Device ID (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints), [Device ID (Save) Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-save-hints), and [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) chapters of the Authentication and Single Sign-On Guide demonstrate how scripts included in AM could be used for extending authentication chains.
 
 * To learn about scripting in IDM, you can start with the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter of IDM's Integrator's Guide.
 
@@ -63,160 +63,6 @@ But first, we will need an environment for deploying all three components, an en
 
 > If you already have ForgeRock platform components running, you may want to skip the next section and make necessary adjustments to any instructions provided there.
 
-## <a id="chapter-030"></a>Setting up the Environment and Running a Platform Sample with ForgeOps
-
-[Back to the Top](#top)
-
-The easiest way to establish a ForgeRock Identity Platform development environment is downloading and installing the [ForgeRock DevOps and Cloud Deployment](https://github.com/ForgeRock/forgeops) example (ForgeOps), and running it in a [Minikube](https://kubernetes.io/docs/setup/minikube/) instance.
-
-The easiest way to accomplish this task is to follow [DevOps Developer's Guide: Using Minikube](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-implementation-env) article in ForgeRock documentation. You may, however, want to [Start Here](https://backstage.forgerock.com/docs/forgeops/6.5/start-here/) for getting familiar with the ForgeOps concepts.
-
-Further instructions will assume that the ForgeRock platform software is running in Minikube. In addition, we will assume the file structure that exists in the ForgeOps project at the time of this writing.
-
-As you go through the guide and arrive at:
-
-* [Creating a Namespace](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-implementation-env-namespace)
-
-    The Guide recommends [creating a namespace](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-implementation-env-namespace) in your Minikube cluster—for reasons of easier maintenance—so that you wouldn't have to remove obsolete objects by hand.
-
-    > Otherwise, per [official Kubernetes recommendation](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/#when-to-use-multiple-namespaces), there should be no need for custom namespaces in a single user development environment that Minikube provides.
-    >
-    > The default namespace will provide the scope for your Kubernetes objects. You will not need to set a specific namespace in your current Minikube context, and you will not have to make changes in your trackable deployment files as described in the [Deploying the Platform](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-implementation-deploy) chapter of the guide.
-
-    In this writing, we will follow the recommendation. We will assume _`my`_ namespace _was_ created.
-
-    <!--
-    Not sure about this section, as it might introduce unnecessary confusion. However, being aware of the default seems valuable information to consider. At the same time, just ignoring the guide that was recommended to follow may be confusing in itself too.
-    -->
-
-* [To Deploy the ForgeRock Identity Platform](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-implementation-deploy-steps)
-
-    At the time of writing, the recommended workflow for standing up a ForgeRock Identity Platform instance with ForgeOps is using [Kustomize](https://kustomize.io/) and [Skaffold](https://skaffold.dev/). This chapter describes some preparations you need to make before deploying the platform.
-
-    We will use Skaffold in the [development mode](https://skaffold.dev/docs/workflows/dev/), which can detect and redeploy changes in the source code (in the staging area).
-
-    We will need an IG instance for our scripting excursion. For that, we will deploy a particular profile, `oauth2`, because at the moment it is the only one in ForgeOps that deploys IG by default. The `oauth2` profile only exists for the version 6.5 of the platform in ForgeOps; as this version is not the default one (7.0 is), we will need to specify it explicitly too.
-
-    > For the purposes of this demo, the scripting environment didn't change substantially between versions `6.5` and `7.0`.
-    <!--
-    >
-    > At the time version 7.0 is released, there may be additional support for scripting new functionality. For example, there may be new scripted nodes for the authentication trees.
-    -->
-
-    Now, to the steps described in the chapter and adjustment we will make for our example:
-
-    1. Your custom namespace (unless you stayed with the `default` one) will need to be set in the `kustomization.yaml` file under `/path/to/forgeops/kustomize/overlay/6.5/oauth`.
-
-    2. Choose version 6.5 and `oauth2` configuration profile to initiate your deployment with.
-
-        ```bash
-        $ cd /path/to/forgeops
-        $ bin/config.sh init --version 6.5 --profile oauth2
-        ```
-
-        > As explained in the [Configuration Data](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#devops-data-configuration) chapter of the Guide, deployment configurations in ForgeOps, which scripts may be a part of, are stored and versioned under the `/path/to/forgeops/config` directory, which serves as a master copy. The running platform sample reads custom configuration from a "staging area", under the `/path/to/forgeops/docker` directory and the staging area is not under version control. This means that prior to the sample being deployed, a configuration needs to be copied to the staging area in order for the custom settings to to become available in the running platform sample.
-        >
-        > As described in the [Managing Configurations](https://github.com/ForgeRock/forgeops/blob/master/README.md#managing-configurations) section of the main ForgeOps README, you can use `/path/to/forgeops/bin/config.sh` script to manage configurations in the running containers, the staging area, and the master directory. In this case, we use the config script to copy `oauth2` profile to the staging area. The settings saved in the staging area will take precedence over the default configuration (from the docker images), when the  containers are deployed.
-        >
-        > The other commands for the `config.sh` script may extract the platform configuration from the running containers and save it back to the staging area and the master directory. This allows to preserve configurations changes made to the running platform sample made, for example, via the component's REST or user-friendly graphic interface.
-        >
-        > As an option, a custom configuration can be updated directly in the staging area and copied back to the version-controlled master directory—to be preserved for future deployments.
-        >
-        > Keep in mind, however, that the script _files_ are not to be updated directly in the running containers and are not subject to be copied back to the master directory in the current implementation of the `config.sh` script.
-
-    3. By default, if no configuration file is specified in the command line, Skaffold will read its workflow from `skaffold.yaml`. If your configuration file name is different, you will need to specify it with the `-f` or `--filename` parameter.
-
-        In ForgeOps, `skaffold-6.5.yaml` provides deployment details for the version 6.5 of the platform. We will specify this file when executing the Skaffold command.
-
-        > You can also use `skaffold-6.5.yaml` as a template for your custom copies of the configuration.
-
-        We will also specify `oauth2` profile (defined in this file), for which we have copied configuration into the staging area.
-
-        In addition, to eliminate dependency on time it takes for the deployment to stabilize, we will disable Skaffold [healthcheck feature](https://skaffold.dev/docs/workflows/ci-cd/#waiting-for-skaffold-deployments-using-healthcheck) by using the `status-check` flag set to `false`.
-
-        > As of Skaffold [1.4.0](https://github.com/GoogleContainerTools/skaffold/releases/tag/v1.4.0), the deadline for status check is two minutes, which may not be enough for a typical ForgeOps deployment. As of version [1.6.0](https://github.com/GoogleContainerTools/skaffold/releases/tag/v1.6.0), the status check is on by default.
-
-        The final command should look like the following:
-
-        ```bash
-        $ skaffold dev --filename=skaffold-6.5.yaml --profile=oauth2 --status-check=false
-        ```
-
-At this point, Skaffold should build and deploy your platform sample. If it fails on the first attempt, sometimes just trying it again helps. If there are persistent problems with the deployment, try [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) cleanly and consult with the [Troubleshooting Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-troubleshoot) section of the Guide.
-
-## <a id="chapter-040"></a>Developing Script Files in ForgeOps
-
-[Back to the Top](#top)
-
-IDM and IG allow to define scripts in separate files, which in some cases may prove more convenient for script development and provides additional options for debugging.
-
-In the [development mode](https://skaffold.dev/docs/workflows/dev/), by default, Skaffold will rebuild and redeploy the sample if changes in the source code are detected (in the staging area).
-
-Redeploying may take considerable time. If a script is defined in a separate file, it is read directly from the container's file system when executed. The component does not need to be rebuilt and redeployed in order for changes in the file to take effect; the file can simply be copied into the container.
-
-Thus, when trying out file based scripts, you may choose not to rebuild and redeploy your platform sample automatically, and instead only to copy the changed files into the corresponding container.
-
-One way to make this process automatic is to use Skaffold's [File Sync](https://skaffold.dev/docs/pipeline-stages/filesync/) feature—by adding the `sync` section to the Skaffold `yaml` file you use for development. For example, you can copy IDM scripts from the `script` directory in your staging area into the corresponding location in the running container:
-
-```yaml
-apiVersion: skaffold/v1beta12
-kind: Config
-build: &default-build
-artifacts:
-# . . .
-- image: idm
-    context: docker/7.0/idm
-    sync:
-    manual:
-        - src: 'script/*'
-        dest: script
-        strip: 'script/'
-# . . .
-```
-
-> According to the Skaffold docs and the examples referenced there, the `strip` parameter should not be necessary in this case, as the files from the source directory—for example, `docker/6.5/idm/script`—should be copied to the corresponding `script`  directory under the `<WORKDIR>` specified in the upstream `Dockerfile`, which in this case is `/opt/openidmin/script`.
->
-> However, at the time of writing, the beta version of the `File Sync` functionality copies the entire structure of the specified source into the destination folder. This means that without the `strip` parameter one may end up with a `/opt/openidmin/script/script` path created in the container. The `strip` directive allows to specify a directory hierarchy to be discarded while copying.
-
-To prevent automatic rebuilding and redeploying, use the `--auto-build` and `--auto-deploy` options set to `false` in the development mode. You may also want to set the `--verbosity` option to the `debug` or `info` level to receive more information about the actions Skaffold performs and the results it achieves. To extend the previous example:
-
-```bash
-skaffold dev --filename=skaffold-6.5.yaml --profile=oauth2 --status-check=false --verbosity='debug' --auto-build=false --auto-deploy=false
-```
-
-> The `info` level option may be sufficient for mere registering the file synchronization events.
-
-With these options and the `--auto-sync` option being set to `true` by default, Skaffold will not redeploy your sample when a change is detected, but it will still copy the updated files according to the `sync` section in your `yaml` file. With the non-default verbosity level, when changes have been made in a file under the `docker/7.0/idm/script`, the synchronization event should be reflected in your terminal. For example:
-
-```bash
-INFO[1140] files modified: [docker/6.5/idm/script/example.js]
-
-Syncing 1 files idm:g141394375ib414ber9is3h . . .
-
-INFO[1140] Copying files: map[docker/6.5/idm/script/example.js:[/opt/openidm/script/example.js]] to idm:g141394375ib414ber9is3h . . .
-```
-
-> At the time of writing, Skaffold's File Sync did not work reliably when files located deep in directory structures, under `/path/to/forgeops/config` were copied into the staging area by the `config.sh` script. Hence, it may be more dependable to edit files directly in the staging area or copy them there as files, not as part of a directory tree.
-
-When you are ready to rebuild and redeploy your platform instance, you can `Ctrl^C` and restart it in your terminal. If your process does not run in the foreground (that is, producing visible output in the terminal), run `skaffold delete` to stop the deployment and to clean up the deployed artifacts. Then run `skaffold dev . . .` with the desired options to start the platform again. Please see [Shutting Down Your Deployment](https://backstage.forgerock.com/docs/forgeops/6.5/devops-guide-minikube/#chap-devops-shutdown) in the DevOps Developer's Guide for complete instructions on how to stop your deployment.
-
-You can also use the [Skaffold API](https://skaffold.dev/docs/design/api/) to control your deployment when it is running. For example, to rebuild and redeploy you could run (in a separate instance of the terminal) the following:
-
-```bash
-curl -X POST http://localhost:50052/v1/execute \
--d '{
-    "build": true,
-    "deploy": true
-}' \
--H "Content-Type: text/plain"
-```
-
-> Using the `Paste Raw Text` option, you can import cURL commands into [Postman](https://www.postman.com/), if that is your preferred environment for making arbitrary network requests. Explicitly adding the "Content-Type: text/plain" header will instruct Postman to use `raw` body for sending the data. In the terminal, this header is not needed, but provides consistency between the two environments.
->
-> When you execute the command and the system does not redeploy immediately, it probably means that it didn't detect any changes in the file system that were worth of the effort. When such changes occur in the watched locations after executing the command, the sample will be redeployed.
-
-Finally, remember that the script files are not expected to be edited directly in the containers. Thus, the scripts files are not copied by `bin/config.sh export` from the containers to the staging area and more importantly, they are not copied to the master directory with `bin/config.sh save`. This means that if you are changing script files in your staging area, you will need to remember to copy the good ones back to the master directory manually in order for them to be versioned.
-
 ## <a id="chapter-050"></a>An Example of Scripting in ForgeRock Components
 
 [Back to the Top](#top)
@@ -225,7 +71,7 @@ To compare environments provided by ForgeRock components, we will create a scrip
 
 > If you use server-side scripts to access an API over encrypted connection, make sure Java, the script engine is running on, trusts the underlying SSL/TLS certificate.
 
-## <a id="chapter-060"></a>[ForgeRock Access Management](https://www.forgerock.com/platform/identity-management) (AM)
+## <a id="chapter-060"></a>[AM](https://www.forgerock.com/platform/identity-management)
 
 [Back to the Top](#top)
 
@@ -251,27 +97,13 @@ From the client side, the data collected with the script can be submitted to the
 
 The decision making process on user identification and access management can be aided with the server-side scripts. The server-side scripts can be written in Groovy or JavaScript; with the latter running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino).
 
-The server-side scripts can accept data from the client side via a well-know variable.
+The server-side scripts can accept data from the client side via a well-known variable.
 
 ### Authentication Trees and Authentication Chains
 
 AM supports two basic authentication workflows: `trees` and `chains`.
 
-The latter approach allows for use of a client-side script defined directly in AM console. Thus, to observe a scripted authentication with a client-side script you could use an authentication chain configured in the a realm of your choice.
-
-> The Top Level Realm is created by default during AM installation. You can find more information about [Setting Up Realms](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-realms) in the docs.
-
-### Scripting in AM Console
-
-To ensure you sign in AM with administrative configuration, navigate to your AM instance using the `/console` path. For example:
-
-https://my-namespace.iam.example.com/am/console/
-
-> AM allows to use separate authentication chains for administrative and non-administrative users. The choice can be made in AM's administrative console under Realms > _Realm Name_ > Authentication > Settings > Core—by selecting desired values for Administrator Authentication Configuration and Organization Authentication Configuration inputs.
->
-> If you don't use the `/console` path, the default _Organization Authentication Configuration_ chain will be used, regardless of whether the actual user is an administrator or not.
->
-> This may not matter if both options point to the same authentication chain.
+The latter approach allows for use of a client-side script defined directly in AM console. Thus, to observe a scripted authentication with a client-side script you could use an authentication chain.
 
 ### Scripting Authentication Chain
 
@@ -283,7 +115,7 @@ Instructions for setting up the Device Id (Match) module, the rest of the [Confi
 
 To outline basic principles of scripting authentication chains in AM, we offer an example of extending the authentication flow with a simple client-side script. The script will load an external library and make an HTTP request in order to get the client's IP information.
 
-1. The Client-side Script.
+1. The Client-side Script
 
     1. Navigate to Realms > _Realm Name_ > Scripts.
 
@@ -324,7 +156,7 @@ To outline basic principles of scripting authentication chains in AM, we offer a
             autoSubmitDelay = 4000; // 4
             ```
 
-            1. Script element for loading an external library.
+            1. Script element is created and added to the page in the browser for loading an external library.
 
             2. When the script is loaded, it will make a request to an external source to obtain the client's IP information.
 
@@ -374,24 +206,76 @@ To outline basic principles of scripting authentication chains in AM, we offer a
 
         * Language: JavaScript
 
-            For a Server-side script, you will be given a choice of language: JavaScript or Groovy. Leave the default JavaScript option selected for now.
+            For a Server-side script, you will be given a choice of language: JavaScript or Groovy. For the JavaScript version, the script might look like the following:
 
         * Script:
 
             ```javascript
+            var failure = true; // 1
+
+            try {
+                var ip = JSON.parse(clientScriptOutputData).ip; // 2
+                var postalAddress = idRepository.getAttribute(username, 'postalAddress'); // 3
+
+                failure = postalAddress.toArray()[0].indexOf(ip.postal) === -1 // 4
+            } catch (e) {
+                logger.error(e.name + ': ' + e.message + ' Line Number: ' + e.lineNumber);
+            }
+
+            if (failure) {
+                logger.error('Authentication denied.');
+
+                authState = FAILED; // 5
+            } else {
+                logger.message('Authentication allowed.');
+
+                authState = SUCCESS; // 5
+            }
             ```
 
-            The functional part of the script could be anything that may work with the available data, which includes:
+            1. We set expectations low and only allow for the success if everything checks out.
 
-            1. User record properties.
-            1. Request properties.
-            1. In our case, we also have a piece of information coming from the client side—the IP and some related data, received from an online provider.
+            2. The data submitted from the client-side script is a stringified JSON. It is used to create a JavaScript object so that its individual properties can be easily accessed.
 
-            At this point, we can compare this IP with a list of allowed IP associated with the user, check the zip code in client-side data with the one in user's postal address, or make a call to a service for processing the data.
+            3.  `idRepository` object is a part of the APIs available for scripts used in authentication modules. Using its methods, we can get the user's postal address as it exists in the identity managed in AM.
 
+                We assume that in this authentication process the user identity is checked with the `DataStore` authentication module and the login name of the user is available via the `username` variable. With this, an attribute can be requested from the corresponding identity.
 
+            4. The user's postal address is compared with the zip code obtained from the online service.
 
-## [ForgeRock Identity Management](https://www.forgerock.com/platform/identity-management) (IDM)
+                The value received from the `getAttribute` method is a Java `HashSet`; we convert it to a String and try to find the current client's zip code in the string.
+
+                In this example, finding the current zip code in the user's address means success, but it could also be determined by checking the client's IP against a white list.
+
+            5. Depending on results that the script produces, the authentication state is set to define outcome of the module.
+
+            As described in [Authentication API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-authn), the functional part of the script have access to number of APIs and data objects.
+
+            In addition, the [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global) allows for making HTTP requests to external resources, which is illustrated in the `Scripted Module - Server Side` and `Scripted Policy Condition` server-side scripts included in the default AM installation.
+
+1. Using the Scripts
+
+    The [Device Id (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints) and [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) chapters of the Authentication and Single Sign-On Guide provide comprehensive coverage for how the scripts can be employed in an authentication chain.
+
+1. Data preparations
+
+    To make a positive comparison with data delivered from the client script, you will need to add corresponding values to the identity with which you try to sign in AM. Out of the box, there should be `postalAddress` attribute associated with an identity, which can be updated in version 6.5 of AM administrative console via Realms > _Realm Name_ > Identities > _Identity_.
+
+    > Managing custom identity attributes in AM is covered in [Setting Up Identity Stores](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-datastores).
+
+1. Debugging
+
+    None of the interfaces for [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/#manage-scripts) in AM allow for traditional debugging. However, Global Scripting API Functionality facilitates [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
+
+    You can set up [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging) as it is described in the Setup and Maintenance Guide.
+
+    For example, for the scripts defined in AM console that are a part of an authentication chain, like the one above, you could go to the `your-am-instance/Debug.jsp` page, select "amScript" for "Debug instances" and "Message" for "Level". Then, wherever in your script you use `logger.message` method, the output will be saved in the logs, along with warnings and errors.
+
+    Then, to access the logs, you can navigate to `your-am-instance/debug` in the Terminal and `tail -f` the log file of interest; in this case `Authentication` one.
+
+    Alternatively, during development, you could use the `logger.error` method without changing the debugging configuration, for the "Error" level is the necessary one for all components in AM.
+
+## [IDM](https://www.forgerock.com/platform/identity-management)
 
 Please see [IDM Docs](https://backstage.forgerock.com/docs/idm) for version-specific, comprehensive, and easy to read technical information about the component.
 
@@ -701,27 +585,7 @@ Select Save.
 
 Now, if you trigger the event you associated your script with, for example update a user attribute (triggering `onUpdate`) or open a user record in the admin (triggering `onRead`), you may observe in the IDM pod logs the printed results of the network call (if it succeeded).
 
-You can run the script at `/path/to/forgeops/bin/config.sh` with the `save` command to see how this change is reflected in configuration files, as described in [Managing Configurations](https://github.com/ForgeRock/forgeops/blob/master/README.md#managing-configurations) in ForgeOps README.
-
-Running the differences will reveal the way your multiline script is preserved in JSON. For example:
-
-```diff
-             "onUpdate" : {
--                "type" : "text/javascript",
--                "source" : "require('onUpdateUser').preserveLastSync(object, oldObject, request);"
-+                "type" : "groovy",
-+                "globals" : {
-+                    "params" : {
-+                        "url" : "http://jsonplaceholder.typicode.com/users/1",
-+                        "method" : "GET"
-+                    }
-+                },
-+                "source" : "import org.forgerock.openidm.action.*\n\ndef result = openidm.action(\"external/rest\", \"call\", params)\n\nprintln result\n\nresult"          },
-```
-
-The overwritten configuration may serve as an example for creating other inline scripts in the configuration files.
-
-## Scripting in [ForgeRock Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG)
+## [IG](https://www.forgerock.com/platform/identity-gateway)
 
 Please see [IG Docs](https://backstage.forgerock.com/docs/ig) for comprehensive coverage of the component.
 
@@ -816,54 +680,6 @@ A multiline script can be defined in a configuration file as an array of strings
     . . .
 ]
 ```
-
-### Scripting in AM
-
-* Get running
-* Interface
-* Select authentication method (tree or chain)
-* Script, client (optional)
-
-    * Access to client information. For example: user agent, geolocation, or IP.
-
-* Script, server-side
-
-    * Access to data from client-side script
-    * Access to user record data
-    * Access to scripting API
-
-
-#### Environment
-
-1. Client-side Scripting
-
-    * Optional
-
-1. Server-side Scripting
-
-#### Goal
-
-1. During authentication, perform scripted action on the client side and pass resulting data to the server-side script.
-
-1. On server side, analyse the data received from the client-side script and make authentication decision.
-
-#### Means
-
-1. Authentication Chains
-
-
-
-1. Authentication Trees
-
-#### Debugging
-
-Set debugging level on a Category or an Instance level: `/am/Debug.jsp`
-
-Debug code with (the default) `logger.error` to reduce output.
-
-Change default `Organization Authentication Configuration` to the custom chain or tree.
-
-Editor: no `find and replace`,  no `Save` in full-screen mode.
 
 ## Similarities
 
