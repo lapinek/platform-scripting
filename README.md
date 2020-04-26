@@ -3,6 +3,8 @@
 
 ForgeRock Identity Platform components, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with scripts written in JavaScript and Groovy.
 
+The scope of scripting in the components, while limited, is extensive. In part, the scripts functionality may be specific to the components context where the script is applied. Across ForgeRock docs, comprehensive coverage of all available functionality, including scripts and examples of their uses, is provided in details. Hence, in this writing we will not try to cover all possible applications of scripts in AM, IDM, and IG, but rather outline particularities that may help to employ them and provide further clarification to the docs.
+
 ## Contents
 
 * [Where to Start](#chapter-010)
@@ -71,7 +73,7 @@ To compare environments provided by ForgeRock components, we will create a scrip
 
 > If you use server-side scripts to access an API over encrypted connection, make sure Java, the script engine is running on, trusts the underlying SSL/TLS certificate.
 
-## <a id="chapter-060"></a>[AM](https://www.forgerock.com/platform/identity-management)
+## <a id="chapter-060"></a>AM
 
 [Back to the Top](#top)
 
@@ -144,16 +146,17 @@ To outline basic principles of scripting authentication chains in AM, we offer a
             script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';
             script.onload = function (e) { // 2
                 $.getJSON('https://ipgeolocation.com/?json=1', function (json) {
-                clientScriptOutputData.ip = json;
-                    output.value = JSON.stringify(data); // 3
+                    output.value = JSON.stringify({
+                        ip: json
+                    }); // 3
 
-                    submit();
+                    submit(); // 4
                 });
             }
 
             document.getElementsByTagName('head')[0].appendChild(script); // 1
 
-            autoSubmitDelay = 4000; // 4
+            autoSubmitDelay = 4000; // 5
             ```
 
             1. Script element is created and added to the page in the browser for loading an external library.
@@ -177,9 +180,11 @@ To outline basic principles of scripting authentication chains in AM, we offer a
                 }
                 ```
 
-                The script uses stringified form of this data to populate the `output` input in the form on the page where the client-side script is running. When the form is submitted, the value of the input will become available for the server-side scripts as the `clientScriptOutputData` variable.
+                The script uses stringified form of this data to populate the `output` input in the form on the page where the client-side script is running. When the form is auto-submitted, the posted value becomes available for the server-side scripts as the `clientScriptOutputData` variable. (Reference: [Accessing Client-Side Script Output Data](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripting-api-authn-client-data)).
 
-            4. To allow for the HTTP call to complete, which is asynchronous operation, automatic submission of the form is delayed via a conventional setting that takes milliseconds.
+            4. When the HTTP call is complete the form can be submitted.
+
+            5. If the HTTP call takes too long to complete, the form is automatically submitted after the specified timeout, via a conventional setting that takes milliseconds.
 
             Select the Save Changes button.
 
@@ -265,7 +270,7 @@ To outline basic principles of scripting authentication chains in AM, we offer a
 
 1. Debugging
 
-    None of the interfaces for [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/#manage-scripts) in AM allow for traditional debugging. However, Global Scripting API Functionality facilitates [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
+    AM does not provide an option for connecting a debugger. However, Global Scripting API Functionality facilitates [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
 
     You can set up [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging) as it is described in the Setup and Maintenance Guide.
 
@@ -275,7 +280,77 @@ To outline basic principles of scripting authentication chains in AM, we offer a
 
     Alternatively, during development, you could use the `logger.error` method without changing the debugging configuration, for the "Error" level is the necessary one for all components in AM.
 
-## [IDM](https://www.forgerock.com/platform/identity-management)
+### Scripting Authentication Tree
+
+As authentication proceeds, nodes in a tree may capture information and save it in shared and authentication states available for next node in the tree.
+
+An equivalent of the client-side executed script used as an example above in an authentication chain, in an authentication tree, being used by the Scripted Decision node, might look like the following (in a Groovy implementation):
+
+```groovy
+/*
+  - Data made available by nodes that have already executed
+	are available in the sharedState variable.
+  - The script should set outcome to either "true" or "false".
+ */
+
+import static org.forgerock.json.JsonValue.*;
+import org.forgerock.openam.auth.node.api.*;
+
+import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
+import com.sun.identity.authentication.callbacks.HiddenValueCallback;
+
+def script = '''\
+var script = document.createElement('script'); // 1
+
+script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';
+script.onload = function (e) { // 2
+	$.getJSON('https://ipgeolocation.com/?json=1', function (json) {
+		document.getElementById('ip').value = JSON.stringify(json); // 3
+
+		document.getElementById("loginButton_0").click(); // 4
+	});
+}
+
+document.getElementsByTagName('head')[0].appendChild(script); // 1
+
+setTimeout(function () {
+	document.getElementById("loginButton_0").click()
+}, 4000); // 5
+'''
+
+if (callbacks.isEmpty()) {
+  action = Action.send([
+    new HiddenValueCallback("ip", "false"),
+    new ScriptTextOutputCallback(script)
+  ]).build();
+} else {
+  if (callbacks[0].getValue() == "ip") {
+    action = Action.goTo("false").build();
+  } else {
+    sharedState = sharedState.put("ip", callbacks[0].getValue());
+
+    action = Action.goTo("true").build();
+  }
+}
+```
+
+1. Debugging
+
+    If a script associated with the Scripted Decision node outputs logs of the allowed level set with Debug.jsp, the script specific log file is created under the `your-am-instance/debug` directory. For example:
+
+    ```bash
+    $ cd ~/openam/am/debug$
+    $ ls
+    Authentication  CoreSystem  IdRepo  scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
+    ```
+
+    ```bash
+    $ tail -f scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
+    scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc:04/26/2020 07:34:02:654 PM GMT: Thread[ScriptEvaluator-5,5,main]: TransactionId[88093018-65c0-4987-b7af-ef1429ac1c04-46398]
+    ERROR: Helpful error description.
+    ```
+
+## IDM
 
 Please see [IDM Docs](https://backstage.forgerock.com/docs/idm) for version-specific, comprehensive, and easy to read technical information about the component.
 
@@ -703,7 +778,11 @@ Now, to differences.
 
     IG does currently not support JavaScript.
 
-*
+* Accessing HTTP Services
+
+    * AM
+
+        From authentication modules, AM makes _synchronous_ network requests with the HTTP client object that are blocking until the script returns or times out according to the Server-side Script Timeout setting, which could be in the AM console under Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_SERVER_SIDE > Secondary Configurations > EngineConfiguration, as described in [Scripted Authentication Module Properties](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#authn-scripted).
 
 
 ## Summary for Server-Side Scripts
