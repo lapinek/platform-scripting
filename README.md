@@ -3,12 +3,10 @@
 
 ForgeRock Identity Platform components, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with scripts written in JavaScript and Groovy.
 
-The scope of scripting in the components, while limited, is extensive. In part, the scripts functionality may be specific to the components context where the script is applied. Across ForgeRock docs, comprehensive coverage of all available functionality, including scripts and examples of their uses, is provided in details. Hence, in this writing we will not try to cover all possible applications of scripts in AM, IDM, and IG, but rather outline particularities that may help to employ them and provide further clarification to the docs.
+Scripting is broadly used in the components and broadly covered in the components' documentation. There are many articles describing scripting environment and application, often in a context of particular task, supplied with examples. Hence, in this writing we will not try to cover all possible applications of scripts in AM, IDM, and IG, but rather outline some common patterns and provide some details that may help to employ scripting in ForgeRock software.
 
 ## Contents
 
-* [Where to Start](#chapter-010)
-* [A Look Into the Platform Scripting](#chapter-020)
 * [An Example of Scripting in ForgeRock Components](#chapter-050)
     * [AM](#top)
     * [IDM](#top)
@@ -22,48 +20,8 @@ The scope of scripting in the components, while limited, is extensive. In part, 
     * [Debugging Options](#top)
 * [Summary Table](#top)
 * [Conclusion](#top)
+* [References](#references)
 
-## <a id="chapter-010"></a>Where to Start
-
-[Back to the Top](#top)
-
-Introduction to scripting in ForgeRock components and additional references to follow can be found in the components' documentation:
-
-* For AM, you can read about scripting in [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts) section of its Development Guide.
-
-    The doc provides information about the contexts to which scripts can be applied, the ways of managing and configuring scripts in AM, and the APIs, objects, and data available for scripts during runtime.
-
-    The scripting engine configuration is described in the [Scripting Reference](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#global-scripting) part of the doc.
-
-    In addition, [Device ID (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints), [Device ID (Save) Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-save-hints), and [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) chapters of the Authentication and Single Sign-On Guide demonstrate how scripts included in AM could be used for extending authentication chains.
-
-* To learn about scripting in IDM, you can start with the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter of IDM's Integrator's Guide.
-
-    From there, [Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-config) chapter is referenced, which is followed by [Calling a Script From a Configuration File](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-call), which describes how a script could be used in different IDM contexts.
-
-    The scripting environment is further explained in the [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#appendix-scripting) chapter of the Guide.
-
-    Information about scripting in IDM is also present in ForgeRock [Knowledge Base](https://backstage.forgerock.com/knowledge/kb/home). In particular, [FAQ: Scripts in IDM/OpenIDM](https://backstage.forgerock.com/knowledge/kb/article/a29088283) could serve as a good initial reference.
-
-    > The knowledge base site content is being constantly updated and allows to search for articles addressing a particular problem. For example, [How do I write to a file using JavaScript on a custom endpoint in IDM/OpenIDM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a88622670).
-
-* Extending IG with scripts starts in the [About Scripting](https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/index.html#about-scripting) section of its Gateway Guide.
-
-    Further information about scripts' usage, configuration, syntax, and environment can be found in IG Configuration Reference for [Scripts](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Scripts).
-
-* Examples
-
-    Across documentation, there are meaningful, component and content specific examples of how the scripts could be employed. Some of them will be referenced later in this document.
-
-## <a id="chapter-020"></a>A Look Into the Platform Scripting
-
-[Back to the Top](#top)
-
-For a quick overview of scripting in AM, IDM, and IG, we will make our own example, a simple, generic script associated with an event in the corresponding component. This will allow us to depict some similarities and some differences in how scripting can be approached in different ForgeRock components, and hopefully create a useful illustration for further explorations.
-
-But first, we will need an environment for deploying all three components, an environment to run this script in.
-
-> If you already have ForgeRock platform components running, you may want to skip the next section and make necessary adjustments to any instructions provided there.
 
 ## <a id="chapter-050"></a>An Example of Scripting in ForgeRock Components
 
@@ -180,7 +138,9 @@ To outline basic principles of scripting authentication chains in AM, we offer a
                 }
                 ```
 
-                The script uses stringified form of this data to populate the `output` input in the form on the page where the client-side script is running. When the form is auto-submitted, the posted value becomes available for the server-side scripts as the `clientScriptOutputData` variable. (Reference: [Accessing Client-Side Script Output Data](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripting-api-authn-client-data)).
+                The script uses stringified form of this data to populate the `output` input in the form on the page where the client-side script is running. When the form is auto-submitted, the posted value becomes available for the server-side scripts as the `clientScriptOutputData` variable.
+
+                (See [Accessing Client-Side Script Output Data](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripting-api-authn-client-data) for details.)
 
             4. When the HTTP call is complete the form can be submitted.
 
@@ -284,55 +244,77 @@ To outline basic principles of scripting authentication chains in AM, we offer a
 
 As authentication proceeds, nodes in a tree may capture information and save it in shared and authentication states available for next node in the tree.
 
-An equivalent of the client-side executed script used as an example above in an authentication chain, in an authentication tree, being used by the Scripted Decision node, might look like the following (in a Groovy implementation):
+1. A Simple Example
 
-```groovy
-/*
-  - Data made available by nodes that have already executed
-	are available in the sharedState variable.
-  - The script should set outcome to either "true" or "false".
- */
+    An equivalent of the client-side executed script used as an example above in an authentication chain, in an authentication tree, being used by the Scripted Decision node, might look like the following (in a Groovy implementation):
 
-import static org.forgerock.json.JsonValue.*;
-import org.forgerock.openam.auth.node.api.*;
+    ```groovy
+    /*
+    - Data made available by nodes that have already executed
+        are available in the sharedState variable.
+    - The script should set outcome to either "true" or "false".
+    */
 
-import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
-import com.sun.identity.authentication.callbacks.HiddenValueCallback;
+    import static org.forgerock.json.JsonValue.*;
+    import org.forgerock.openam.auth.node.api.*;
 
-def script = '''\
-var script = document.createElement('script'); // 1
+    import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
+    import com.sun.identity.authentication.callbacks.HiddenValueCallback;
 
-script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';
-script.onload = function (e) { // 2
-	$.getJSON('https://ipgeolocation.com/?json=1', function (json) {
-		document.getElementById('ip').value = JSON.stringify(json); // 3
+    def script = '''\
+    var script = document.createElement('script'); // 1
 
-		document.getElementById("loginButton_0").click(); // 4
-	});
-}
+    script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';
+    script.onload = function (e) { // 2
+        $.getJSON('https://ipgeolocation.com/?json=1', function (json) {
+            document.getElementById('ip').value = JSON.stringify(json); // 3
 
-document.getElementsByTagName('head')[0].appendChild(script); // 1
+            document.getElementById("loginButton_0").click(); // 4
+        });
+    }
 
-setTimeout(function () {
-	document.getElementById("loginButton_0").click()
-}, 4000); // 5
-'''
+    document.getElementsByTagName('head')[0].appendChild(script); // 1
 
-if (callbacks.isEmpty()) {
-  action = Action.send([
-    new HiddenValueCallback("ip", "false"),
-    new ScriptTextOutputCallback(script)
-  ]).build();
-} else {
-  if (callbacks[0].getValue() == "ip") {
-    action = Action.goTo("false").build();
-  } else {
-    sharedState = sharedState.put("ip", callbacks[0].getValue());
+    setTimeout(function () {
+        document.getElementById("loginButton_0").click()
+    }, 4000); // 5
+    '''
 
-    action = Action.goTo("true").build();
-  }
-}
-```
+    if (callbacks.isEmpty()) {
+    action = Action.send([
+        new HiddenValueCallback("ip", "false"),
+        new ScriptTextOutputCallback(script)
+    ]).build();
+    } else {
+    if (callbacks[0].getValue() == "ip") {
+        action = Action.goTo("false").build();
+    } else {
+        sharedState = sharedState.put("ip", callbacks[0].getValue());
+
+        action = Action.goTo("true").build();
+    }
+    }
+    ```
+
+    The next node in the tree will be able to retrieve the IP information by querying the shared state. For example:
+
+    ```groovy
+    def ip = sharedState.get("ip");
+    ```
+
+    The tree might be looking like the following:
+
+    <img src="README_files/am.authentication-tree.scripted-decision-module.png" alt="Authentication Tree with the Scripted Decision node." width="1024">
+
+    Alternatively, the client-side data could be processed in the same Scripted Decision node.
+
+    References:
+
+    * ["Scripted Decision Node API Functionality"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripting-api-node). Authentication and Single Sign-On Guide.
+    * ["Scripted Decision Node"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#auth-node-scripted-decision). Authentication and Single Sign-On Guide.
+    * ["Using Callbacks"](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks). Development Guide.
+    * ["Supported Callbacks"](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#supported-callbacks). Development Guide.
+    * ["Sending and Executing JavaScript in a Callback"](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript).  Authentication Node Development Guide.
 
 1. Debugging
 
@@ -349,6 +331,10 @@ if (callbacks.isEmpty()) {
     scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc:04/26/2020 07:34:02:654 PM GMT: Thread[ScriptEvaluator-5,5,main]: TransactionId[88093018-65c0-4987-b7af-ef1429ac1c04-46398]
     ERROR: Helpful error description.
     ```
+
+    References
+
+    * ["Debug Logging"](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging). Setup and Maintenance Guide.
 
 ## IDM
 
@@ -758,15 +744,13 @@ A multiline script can be defined in a configuration file as an array of strings
 
 ## Similarities
 
-Scripts extend existing functionality and their application is specific to a component. The component also defines the script what type of data and functionality is available for scripts. The the scripts' environment, configuration, and sometimes even syntax may be specific to a component.
+The scripting objectives and implementation are driven by the components functionality and the environment it provides. Hence, the scripting configuration, the data and methods a script can use, and sometimes even syntax may be specific to a component.
 
-Nevertheless, scripts work at a low level, and there are similarities:
+At a low level, and there are similarities:
 
 * All three components support scripting in Groovy.
 
 * AM and IDM use [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino)—the scripting engine having access to Java functionality provided by the corresponding component—to support server-side JavaScript.
-
-Now, to differences.
 
 ## Differences
 
@@ -789,19 +773,17 @@ Now, to differences.
 
 | Script Feature | IDM | IG | AM |
 |-|-|-|-|
-| References | https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting | https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/#chap-extending | https://backstage.forgerock.com/docs/am/6/dev-guide/#chap-dev-scripts<br>https://backstage.forgerock.com/docs/am/6/dev-guide/#global-scripting<br>https://backstage.forgerock.com/docs/am/6/maintenance-guide/index.html#sec-maint-debug-logging<br>https://backstage.forgerock.com/docs/am/6.5/authentication-guide/#configuring-the-default-auth-chain<br>https://backstage.forgerock.com/docs/am/6/authentication-guide/index.html#sec-scripted-auth-module<br>https://backstage.forgerock.com/docs/am/6/authentication-guide/index.html#scripting-api-authn-client-data<br>https://forum.forgerock.com/topic/realm-authentication-chain/ |
-| Commons | Defined with JSON<br>Administrator account is required for managing scripts|
-| Type | `text/javascript`, `groovy` | `application/x-groovy` | JAVASCRIPT or GROOVY—depending on script `context` type (labeled `Script Type` in AM Console) |
-| Configuration | Part of a configuration file (JSON) | Part of a configuration file (JSON) | |
-| Managing | File, JSON configuration, Script Manager | File, JSON configuration, Studio (may not be available in ForgeOps) | AM Console, REST, `ssoadm` command, allows for setting defaults |
+| Type | `text/javascript`, `groovy` | `application/x-groovy` | JavaScript  (Rhino), JavaScript (browser), Groovy<br>Depends on script's `context` type (labeled `Script Type` in AM Console) |
+| Configuration | Part of a configuration file (JSON) | Part of a configuration file (JSON) | Defined in AM console and saved in encoded form in a configuration file in the `amster` pod file system (`/opt/amster/config/realms/root/Scripts`) |
+| Managing | File, JSON configuration, Script Manager | File, JSON configuration, Studio (may not be available in ForgeOps) | AM Console, REST, `ssoadm` command |
 | Validation | REST | | AM Console, REST |
-| Multiline Source | `\n` | Array (of strings) | |
-| Arguments | The `globals` namespace | `args` key | |
-| Access to | `openidm` functions, request, context, managed object, resource information, operation results | request, context, etc., [Properties, Available Objects, and Imported Classes](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf)| |
+| Multiline Source | `\n` | Array (of strings) | UI editor |
+| Arguments | The `globals` namespace | `args` key | Direct editing |
+| Access to | `openidm` functions, request, context, managed object, resource information, operation results | request, context, etc., [Properties, Available Objects, and Imported Classes](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf) | Depends on context |
 | Other Context Differences | | |
 | Extras | | Capture Decorator | |
 | Security | | | Security Settings Component: Java Class White/Black Lists, System (JVM) SecurityManager|
-| Debugging | | | [Debug Logging](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-logger) |
+| Debugging | Debugger can be attached | | [Debug Logging](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-logger) |
 | Particularities | | | User-created scripts are realm-specific |
 | HTTP Request | | | `org.forgerock.http.protocol`, Synchronous [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-http-client)|
 | Exported Scripts Location | | | `/path/to/forgeops/docker/6.5/amster/config/realms/root/Scripts` |
@@ -832,102 +814,57 @@ Now, to differences.
     }
     ```
 
-***
-***
-***
+## <a id="references"></a>References
 
+[Back to the Top](#top)
 
-## Plan
+### AM
 
-Need to define the series, so that the scope of the first article is outlined.
+#### General
 
-Chapters:
+* ["Developing with Scripts"](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts). Development Guide.
 
-1. What scripts can be used for?
-2. Where are they located?
-3. What data do they have access to? (For example echo.js)
-4. Debugging and logging.
+    Information about the contexts to which scripts can be applied, the ways of managing and configuring scripts in AM, and the APIs, objects, and data available for scripts at runtime.
 
-1. AM
+* ["Scripting Reference"](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#global-scripting). Development Guide.
 
-    1. JVM
-    1. No file reference option
+    Covers the scripting engine configuration.
 
-1. IG
+#### Authentication Chains
 
-    1. Multiline script as an array
-    1. Access to JVM and API
+* ["Device ID (Match) Authentication Module"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints). Authentication and Single Sign-On Guide.
 
-1. IDM
+* ["Device ID (Save) Module"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-save-hints). Authentication and Single Sign-On Guide.
 
-    1. API: create, read, etc., request/response object
+* ["Using Server-side Authentication Scripts in Authentication Modules"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module). Authentication and Single Sign-On Guide.
 
+### IDM
 
-1. Suggested Example
+#### General
 
-    1. Make HTTP request to a service
-    1. Location, Syntax, and Examples
-    1. Summary Table
-    1. Differences in Context, Use of the Scripts
+* ["Extending IDM Functionality By Using Scripts"](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting). Integrator's Guide.
 
-1. Questions
+* ["Setting the Script Configuration"](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-config). Integrator's Guide.
 
-    1. Use case for each component? Or abstract from use cases and focus on the script environment?
-    1. Full implementation details (that is, step-by-step functional example) or just key concepts? (No)
-    1. How not to repeat existing docs and reference them efficiently?
-    1. Should we cover IG Studio?
-    1. Scripts' security.
-    1. AM
+* ["Calling a Script From a Configuration File"](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-call). Integrator's Guide.
 
-        1. Client-side (async) and server-side data exchange.
+    Describes how a script could be used in different IDM contexts.
 
-1. Follow Ups
+* ["Scripting Reference"](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#appendix-scripting). Integrator's Guide.
 
-    1. Debug logger in IDM
-    1. Debug logger in IG
+* [FAQ: Scripts in IDM/OpenIDM](https://backstage.forgerock.com/knowledge/kb/article/a29088283). Knowledge Base.
 
-***
+#### Examples
 
-References:
+* [How do I write to a file using JavaScript on a custom endpoint in IDM/OpenIDM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a88622670). Knowledge Base.
 
-1. Conventions:
-    1. https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/#formatting-conventions
+### IG
 
-1. Debugging
+#### General
 
-    1. `forgeops/cicd/forgeops-ui/README.MD`
+* [About Scripting](https://backstage.forgerock.com/docs/ig/6.5/gateway-guide/index.html#about-scripting). Gateway Guide.
 
-1. IG
+* [Scripts](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Scripts). Configuration Reference.
 
-    1. Chain Scriptable Filter
-
-        1. https://backstage.forgerock.com/knowledge/kb/article/a77687377
-
-Notes
-
-1. Eval and Compile
-
-    1. Credentials
-
-        1. Bearer
-        2. X-OpenIDM- . . . headers mentioned in docs do not seem to work in 7
-
-1. Custom Endpoints
-
-    1. “source" does not seem to work > `Expected ',' instead of ‘’`
-    2. Use “file”
-
-1. Actions
-
-    1. `"http://localhost:8080/openidm/managed/user/:ID?_actionId=toggleUpdate”` does not seem to work.
-    2. Needs to be `/user/12a59751-17c3-49ad-9521-610c02299d41?_action=togglePreferences` like.
-
-1. Postman
-
-    1.
-
-1. Scripts (Behavior)
-
-    1. Groovy considers the last evaluated expression of a method to be the returned value.
-    1. JS as well?
+    Information about scripts' usage, configuration, syntax, and environment.
 

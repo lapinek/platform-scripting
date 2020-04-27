@@ -1,7 +1,18 @@
 <a id="top">
 
+* [A Look Into the Platform Scripting](#chapter-020)
 * [Setting up the Environment and Running a Platform Sample with ForgeOps](#chapter-030)
 * [Developing Script Files in ForgeOps](#chapter-040)
+
+## <a id="chapter-020"></a>A Look Into the Platform Scripting
+
+[Back to the Top](#top)
+
+For a quick overview of scripting in AM, IDM, and IG, we will make our own example, a simple, generic script associated with an event in the corresponding component. This will allow us to depict some similarities and some differences in how scripting can be approached in different ForgeRock components, and hopefully create a useful illustration for further explorations.
+
+But first, we will need an environment for deploying all three components, an environment to run this script in.
+
+> If you already have ForgeRock platform components running, you may want to skip the next section and make necessary adjustments to any instructions provided there.
 
 ## <a id="chapter-030"></a>Setting up the Environment and Running a Platform Sample with ForgeOps
 
