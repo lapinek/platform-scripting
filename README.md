@@ -3,7 +3,7 @@
 
 ForgeRock Identity Platform components, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with scripts written in JavaScript and Groovy.
 
-Scripting is broadly used in the components and broadly covered in the components' documentation. There are many articles describing scripting environment and application, often in a context of particular task, supplied with examples. Hence, in this writing we will not try to cover all possible applications of scripts in AM, IDM, and IG, but rather outline some common patterns and provide some details that may help to employ scripting in ForgeRock software.
+Scripting is broadly used in the components and broadly covered in the components' documentation. There are many articles describing scripting environment and application, often in a context of particular task, supplied with examples. In this writing we will try to outline some common scripting patterns in AM, IDM, and IG and provide some details to compliment the existing docs.
 
 ## Contents
 
@@ -244,7 +244,7 @@ To outline basic principles of scripting authentication chains in AM, we offer a
 
 As authentication proceeds, nodes in a tree may capture information and save it in shared and authentication states available for next node in the tree.
 
-1. A Simple Example
+1. The Simple Example
 
     An equivalent of the client-side executed script used as an example above in an authentication chain, in an authentication tree, being used by the Scripted Decision node, might look like the following (in a Groovy implementation):
 
@@ -255,54 +255,100 @@ As authentication proceeds, nodes in a tree may capture information and save it 
     - The script should set outcome to either "true" or "false".
     */
 
-    import static org.forgerock.json.JsonValue.*;
-    import org.forgerock.openam.auth.node.api.*;
+    // import static org.forgerock.json.JsonValue.*;
+    import org.forgerock.openam.auth.node.api.*; // 1
 
-    import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
-    import com.sun.identity.authentication.callbacks.HiddenValueCallback;
+    import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback; // 2
+    import com.sun.identity.authentication.callbacks.HiddenValueCallback; // 2
 
-    def script = '''\
-    var script = document.createElement('script'); // 1
+    def script = ''' // 5
+    var script = document.createElement('script'); // 6
 
     script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';
     script.onload = function (e) { // 2
         $.getJSON('https://ipgeolocation.com/?json=1', function (json) {
-            document.getElementById('ip').value = JSON.stringify(json); // 3
+            document.getElementById('ip').value = JSON.stringify(json); // 7
 
-            document.getElementById("loginButton_0").click(); // 4
+            document.getElementById("loginButton_0").click();
         });
     }
 
-    document.getElementsByTagName('head')[0].appendChild(script); // 1
+    document.getElementsByTagName('head')[0].appendChild(script); // 6
 
     setTimeout(function () {
         document.getElementById("loginButton_0").click()
-    }, 4000); // 5
+    }, 44000); // 8
     '''
 
-    if (callbacks.isEmpty()) {
-    action = Action.send([
-        new HiddenValueCallback("ip", "false"),
-        new ScriptTextOutputCallback(script)
-    ]).build();
+    if (callbacks.isEmpty()) { // 9
+        action = Action.send([
+            new HiddenValueCallback("ip", "false"),
+            new ScriptTextOutputCallback(script)
+        ]).build();
     } else {
-    if (callbacks[0].getValue() == "ip") {
-        action = Action.goTo("false").build();
-    } else {
-        sharedState = sharedState.put("ip", callbacks[0].getValue());
+        def failure = true;
 
-        action = Action.goTo("true").build();
-    }
+        if (callbacks[0].getValue() != "ip") { // 10
+            sharedState.put("ipString", callbacks[0].getValue());
+
+            failure = false;
+        }
+
+        if (failure) {
+            action = Action.goTo("false").build();
+        } else {
+            action = Action.goTo("true").build();
+        }
     }
     ```
 
     The next node in the tree will be able to retrieve the IP information by querying the shared state. For example:
 
     ```groovy
-    def ip = sharedState.get("ip");
+    /*
+    - Data made available by nodes that have already executed are available in the sharedState variable.
+    - The script should set outcome to either "true" or "false".
+    */
+
+    import org.forgerock.openam.auth.node.api.*; // 1
+
+    // import com.sun.identity.idm.AMIdentity; // 2
+    import com.sun.identity.idm.IdUtils; // 3
+
+    import groovy.json.JsonSlurper; // 4
+
+    def ip = new JsonSlurper().parseText(sharedState.get("ipString"));
+    def id = IdUtils.getIdentity(sharedState.get("username"), sharedState.get("realm"));
+
+    def failure = id.getAttribute("postalAddress").toArray()[0].indexOf(ip.postal) == -1;
+
+    if (failure) {
+        action = Action.goTo("false").build();
+    } else {
+        action = Action.goTo("true").build();
+    }
     ```
 
-    The tree might be looking like the following:
+    Or, a JavaScript equivalent:
+
+    ```javascript
+    var goTo = org.forgerock.openam.auth.node.api.Action.goTo;
+    var getIdentity = com.sun.identity.idm.IdUtils.getIdentity;
+
+    var ip = JSON.parse(sharedState.get("ipString"));
+
+    var id = getIdentity(sharedState.get("username"), sharedState.get("realm"));
+
+    var failure = id.getAttribute("postalAddress").toArray()[0].indexOf(ip.postal) == -1;
+
+    if (failure) {
+        action = goTo("false").build();
+    } else {
+        action = goTo("true").build();
+    }
+    ```
+
+    The authentication tree might look like the following:
 
     <img src="README_files/am.authentication-tree.scripted-decision-module.png" alt="Authentication Tree with the Scripted Decision node." width="1024">
 
@@ -315,6 +361,7 @@ As authentication proceeds, nodes in a tree may capture information and save it 
     * ["Using Callbacks"](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks). Development Guide.
     * ["Supported Callbacks"](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#supported-callbacks). Development Guide.
     * ["Sending and Executing JavaScript in a Callback"](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript).  Authentication Node Development Guide.
+    * ["Accessing an Identity's Profile"](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-user-profile). Authentication Node Development Guide.
 
 1. Debugging
 
@@ -332,9 +379,16 @@ As authentication proceeds, nodes in a tree may capture information and save it 
     ERROR: Helpful error description.
     ```
 
+    If an error occurs that is not handled within the script itself, it may be reported in the Authentication log. For example, it you try to employ a Java package that is not white listed in the scripting engine settings, the "Access to Java class . . . is prohibited." error will appear in the Authentication log.
+
+    > In the example above, parsing JSON with `groovy.json.JsonSlurper` (in the Groovy version of the script) would require the `groovy.json.internal.LazyMap` class to be allowed in the scripting engine setting. For getting identity with the `IdUtils` method, `com.sun.identity.idm.AMIdentity` would have to be white listed.
+
+    You can specify allowed and dis-allowed Java classes in AM administrative console at Realms > _Realm Name_ > Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_TREE_DECISION_NODE > Secondary Configurations > EngineConfiguration > Java class whitelist/Java class blacklist.
+
     References
 
     * ["Debug Logging"](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging). Setup and Maintenance Guide.
+    * ["Scripted Authentication Module Properties"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#authn-scripted). Authentication and Single Sign-On Guide.
 
 ## IDM
 
@@ -837,6 +891,10 @@ At a low level, and there are similarities:
 * ["Device ID (Save) Module"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-save-hints). Authentication and Single Sign-On Guide.
 
 * ["Using Server-side Authentication Scripts in Authentication Modules"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module). Authentication and Single Sign-On Guide.
+
+#### Java Interfaces
+
+* [AM 6.5.2.3 Public API Javadoc](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html). OpenAM Server Only 6.5.2.3 Documentation.
 
 ### IDM
 
