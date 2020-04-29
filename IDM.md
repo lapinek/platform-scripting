@@ -1,5 +1,11 @@
 # Scripting in [ForgeRock Identity Management](https://www.forgerock.com/platform/identity-management) (IDM)
 
+## In the ForgeOps Context
+
+* As you change scripts in a watched location in the staging area, it will be automatically copied to the container, which is going to be reflected in the terminal output if you deployed your sample with the verbosity level of `info` or `debug`.
+
+
+
 ##### Notes
 
 ###### From IDM Integrator's Guide:
