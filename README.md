@@ -3,7 +3,9 @@
 
 ForgeRock Identity Platform components, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with scripts written in JavaScript and Groovy.
 
-This writing aims at a quick introduction to scripting in the Platform via the references, comparing the scripting environments, and an example of a script with some additional details to compliment the docs.
+Scripting is broadly used in the components and broadly covered across [ForgeRock Product Documentation](https://backstage.forgerock.com/docs/). There are many articles describing scripting environment and application, often in a context of particular task and supplied with examples. Other places in the documentation cover functionality that is not directly related to scripting, but can be employed by scripts.
+
+This writing aims at a quick introduction to scripting in the Platform via the references, comparing the scripting environments, and an example of a script with some additional details to compliment the official docs.
 
 ## Contents
 
@@ -19,15 +21,15 @@ This writing aims at a quick introduction to scripting in the Platform via the r
 
 [Back to the Top](#top)
 
-To compare environments provided by ForgeRock components, we will create a script that will make an HTTP call to an online service and receive a response in the form of JSON, which the script _could_ evaluate against other data provided by the script's environment.
+To compare scripting environments provided by ForgeRock components, we will create a script that will make an HTTP call to an online service and receive a response in the form of JSON, which the script could evaluate against other data accessible in the script's environment.
 
-> If you use server-side scripts to access an API over encrypted connection, you will make sure the scripting engine's Java trusts the underlying SSL/TLS certificate.
+<!-- >> If you use server-side scripts to access an API over encrypted connection, you will make sure the scripting engine's Java trusts the underlying SSL/TLS certificate. -->
+
+This is just one possible scripting application in ForgeRock products, but it will expose scripts' management, configuration, environment, and debugging options in the three products.
 
 ## <a id="example-am"></a>AM
 
 [Back to the Top](#top)
-
-AM documentation can be found at [https://backstage.forgerock.com/docs/am](https://backstage.forgerock.com/docs/am).
 
 AM provides authentication and authorization services, and custom scripts can be used to augment the default functionality.
 
@@ -35,7 +37,7 @@ AM provides authentication and authorization services, and custom scripts can be
 
 The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter shows how the scripts can be managed via REST and command line interfaces. These may represent the most efficient way to manage scripts in automated environments; for example, in production deployments.
 
-At the same time, AM console provides an easy to use visual interface for managing scripts and applying them to authentication and authorization events. For the example purposes, we will use the console to apply a script to an authentication procedure in AM.
+At the same time, AM console provides an easy to use visual interface for managing scripts and applying them to authentication and authorization events. For the example purposes, we will use AM console to extend an authentication procedure with a script.
 
 ### Client-Side Scripts
 
@@ -47,35 +49,35 @@ From the client side, the data collected with the script can be submitted to the
 
 ### Server-Side Scripts
 
-The decision making process on user identification and access management can be aided with the server-side scripts. The server-side scripts can be written in Groovy or JavaScript; with the latter running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino).
+The decision making process on user identification and access management can be aided with the server-side scripts. The server-side scripts can be written in Groovy or JavaScript running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino).
 
-The server-side scripts can accept data from the client side via a well-known variable.
+> At the time of writing, the 6.5 version of AM is using Rhino version 1.7R4.
 
-### Authentication Trees and Authentication Chains
+AM supports two basic authentication workflows: `chains` and `trees`.
 
-AM supports two basic authentication workflows: `trees` and `chains`.
+The server-side scripts can accept data from the client side via a well-known variable in Authentication Chains or from the shared state object in Authentication Trees.
 
-### Scripting Authentication Chain
+### Scripting Authentication Chain Example
 
-The default AM configuration includes a functional set of client-side and server-side scripts, the Device Id (Match) scripts, to work together as a part of an authentication module, which is the elementary unit of an authentication chain. Setting up a Device Id (Match) module is described in details in the docs under AM 6.5 › Authentication and Single Sign-On Guide > [Device Id (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints), along with the related [Device Id (Save)](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-save-hints) one.
+To outline basic principles of scripting authentication chains in AM, we offer an example of extending the authentication flow with a pair of simple client-side and server-side scripts.
 
-Instructions for setting up the Device Id (Match) module, the rest of the [Configuring Authentication Chains and Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#configure-authn-chains-modules) chapter, and the [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) one in the  Authentication and Single Sign-On Guide can serve as a reference for setting up a custom authentication chain.
+> You can find links to official examples in the [References](#references) section of this writing, including detailed instructions on how to set up an authentication chain.
 
-### A Simple Example
-
-To outline basic principles of scripting authentication chains in AM, we offer an example of extending the authentication flow with a simple client-side script. The script will load an external library and make an HTTP request in order to get the client's IP information.
+Sign in as an AM administrator, for example amadmin.
 
 1. The Client-side Script
 
-    1. Navigate to Realms > _Realm Name_ > Scripts.
+    The script will load an external library and make an HTTP request in order to get the client's IP information.
+
+    1. Navigate to Realms > _Realm Name_ > Scripts
 
         You will see number of predefined scripts, some of which can serve as templates for the new ones. In particular, Scripted Module - Server Side example script will be the starting point for any added script of the Server-side Authentication type.
 
-    1. Select + New Script.
+    1. Select + New Script
 
-        In the New Script dialog, provide name for your script in the Name input and select Client-side Authentication for the Script Type input. For example:
+        In the New Script dialog, populate the inputs:
 
-        * Name:  Scripted Module - Client Side - Example
+        * Name:  _Your Scripted Module Client Side Script_
         * Script Type: Client-side Authentication
 
         Select the Create button.
@@ -144,20 +146,20 @@ To outline basic principles of scripting authentication chains in AM, we offer a
 
     The `Scripted Module - Client Side` script, included in AM configuration by default, serves as a starting template for all new scripts of type "Server-side Authentication". In our example, we will replace its content with functionality that relies on the results delivered by our client-side script.
 
-    1. Navigate back to Realms > _Realm Name_ > Scripts.
+    1. Navigate back to Realms > _Realm Name_ > Scripts
 
-    1. Select + New Script.
+    1. Select + New Script
 
-        In the New Script dialog, provide a Name. This time, select Server-side Authentication for the Script Type input.
+        In the New Script dialog, populate the inputs:
 
         For example:
 
-        * Name:  Scripted Module - Server Side - Example
+        * Name:  _Your Scripted Module Server Side Script_
         * Script Type: Server-side Authentication
 
         Select the Create button.
 
-    2. In the following dialog, populate the Language and the Script inputs:
+    1. In the following dialog, populate the Language and the Script inputs:
 
         * Language: JavaScript
 
@@ -200,7 +202,7 @@ To outline basic principles of scripting authentication chains in AM, we offer a
 
                 The value received from the `getAttribute` method is a Java `HashSet`; we convert it to a String and try to find the current client's zip code in the string.
 
-                In this example, finding the current zip code in the user's address means success, but it could also be determined by checking the client's IP against a white list.
+                In this example, finding the current zip code in the user's address means success, but it could also be determined by checking the client's IP against a white list, for example.
 
             5. Depending on results that the script produces, the authentication state is set to define outcome of the module.
 
@@ -208,25 +210,71 @@ To outline basic principles of scripting authentication chains in AM, we offer a
 
             In addition, the [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global) allows for making HTTP requests to external resources, which is illustrated in the `Scripted Module - Server Side` and `Scripted Policy Condition` server-side scripts included in the default AM installation.
 
-1. Using the Scripts
+1. Authentication Module and Chain
 
-    The [Device Id (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints) and [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) chapters of the Authentication and Single Sign-On Guide provide comprehensive coverage for how the scripts can be employed in an authentication chain.
+    1. Navigate back to Realms > _Realm Name_ > Authentication > Modules.
+
+    1. Select + Add Module.
+
+        In the New Module dialog, populated the inputs:
+
+        * Name:  _Your Scripted Module_
+        * Script Type: Scripted Module
+
+        Select the Create button.
+
+    1. In the following dialog, populate the inputs as follows:
+
+        * Client-side Script: Enabled
+        * Client-side Script: _Your Scripted Module Client Side Script_
+        * Server-side Script:  _Your Scripted Module Server Side Script_
+        * Authentication Level: 1 (default)
+
+    1. Navigate back to Realms > _Realm Name_ > Authentication > Chains.
+
+    1. Select + Add Chain.
+
+    1. In the Add Chain dialog, populate the Name input:
+
+        * Name: _Your Chain_
+
+        Select the Create button.
+
+    1. In the following dialog, select + Add Module.
+
+    1. In the popup windows, populate the inputs:
+
+        * Select Module: DataStore
+        * Select Criteria: Required
+
+        Select the OK button.
+
+    1. In the Edit Chain screen, select + Add Module.
+
+    1. In the popup windows, populate the inputs:
+
+        * Select Module: _Your Scripted Module_
+        * Select Criteria: Required
+
+        Select the OK button.
+
+    1. In the Edit Chain screen, select the Save Changes button.
+
+    > If you are unsure how to use scripts in an authentication chain, [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) provide comprehensive coverage for how the scripts can be employed in an authentication chain.
 
 1. Data preparations
 
     To make a positive comparison with data delivered from the client script, you will need to add corresponding values to the identity with which you try to sign in AM. Out of the box, there should be `postalAddress` attribute associated with an identity, which can be updated in version 6.5 of AM administrative console via Realms > _Realm Name_ > Identities > _Identity_.
 
-    > Managing custom identity attributes in AM is covered in [Setting Up Identity Stores](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-datastores).
+    > If you'd like to use custom identity attributes, their management is covered in [Setting Up Identity Stores](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-datastores).
 
 1. Debugging
 
-    AM does not provide an option for connecting a debugger. However, Global Scripting API Functionality facilitates [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
+    AM does not provide an option for connecting a debugger. However, Global Scripting API Functionality facilitates [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger), which you can set as it is described in the Setup and Maintenance Guide.
 
-    You can set up [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging) as it is described in the Setup and Maintenance Guide.
+    For example, for the scripts defined in AM console that are a part of an authentication chain, like the one we created, you could go to the `your-am-instance/Debug.jsp` page, select "amScript" for "Debug instances" and "Message" for "Level". Then, wherever in your script you use `logger.message` method, the output will be saved in the logs, along with warnings and errors.
 
-    For example, for the scripts defined in AM console that are a part of an authentication chain, like the one above, you could go to the `your-am-instance/Debug.jsp` page, select "amScript" for "Debug instances" and "Message" for "Level". Then, wherever in your script you use `logger.message` method, the output will be saved in the logs, along with warnings and errors.
-
-    Then, to access the logs, you can navigate to `your-am-instance/debug` in the Terminal and `tail -f` the log file of interest; in this case `Authentication` one.
+    Then, to access the logs, you can navigate to the `your-am-instance/debug` directory in Terminal and `tail -f` the log file of interest; in this case the `Authentication` file.
 
     Alternatively, during development, you could use the `logger.error` method without changing the debugging configuration, for the "Error" level is the necessary one for all components in AM.
 
@@ -800,11 +848,17 @@ A multiline script can be defined in a configuration file as an array of strings
 
 * Languages
 
+    All three components support scripting in Groovy.
+
     AM allows for client-side scripts, which run in the browser environment. The server-side scripts, running on Rhino, can have access to data obtained with a client-side script.
 
     IDM only supports JavaScript on the server side, with Rhino.
 
     IG does not currently support JavaScript.
+
+* Management
+
+    In IDM, the scripts can be managed directly in separate files and referenced from the configuration. The configuration can be itself managed directly in the file system.
 
 * Accessing HTTP Services
 
@@ -862,14 +916,11 @@ A multiline script can be defined in a configuration file as an array of strings
 
 [Back to the Top](#top)
 
-Scripts add flexibility to the ForgeRock Identity Platform. While a script may not be performing as well as a native/standard implementation, the scripts can be used to substitute functionality not yet present in the current version of the softwares.
-
 The scripting objectives and implementation are driven by the component's functionality and the environment it provides. Hence, the scripts' location, configuration, security, the data and methods a script can use, and the way the scripts are managed are specific to a component.
 
 There are certain similarities too: the choice of scripting languages, ability to access the underlying Java functionality and the component's context data, logging methods, access to the request object, and ability to make back-channel network requests. In some deployments, the scripts configuration can be exported and tracked in the file system.
 
-Scripting is broadly used in the components and broadly covered across [ForgeRock Product Documentation](https://backstage.forgerock.com/docs/). There are many articles describing scripting environment and application, often in a context of particular task and supplied with examples. Other places in the documentation cover functionality that is not directly related to scripting, but can be employed by scripts.
-
+Scripts add flexibility to the ForgeRock Identity Platform. While a script may not be performing as well as a native/standard implementation, the scripts can be used to substitute functionality not yet present in the current version of the softwares.
 
 ## <a id="references"></a>References
 
@@ -904,6 +955,12 @@ Scripting is broadly used in the components and broadly covered across [ForgeRoc
 
 * Environment
 
+    * [Authentication API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-authn). Development Guide.
+
+        The functionality available for scripted authentication modules.
+
+    * [Scripted Decision Node API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node). Development Guide.
+
     * [The Node Class](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-class). Authentication Node Development Guide.
 
     * [AM 6.5.2.3 Public API Javadoc](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html). OpenAM Server Only 6.5.2.3 Documentation.
@@ -934,11 +991,19 @@ Scripting is broadly used in the components and broadly covered across [ForgeRoc
 
 * Examples
 
-    * ["Device ID (Match) Authentication Module"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints). Authentication and Single Sign-On Guide.
+    * ["Device ID (Match) Authentication Module"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints), ["Device ID (Save) Module"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-save-hints). Authentication and Single Sign-On Guide.
 
-    * ["Device ID (Save) Module"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-save-hints). Authentication and Single Sign-On Guide.
+        The default AM configuration includes a functional set of client-side and server-side scripts, the Device Id (Match) scripts, to work together as a part of an authentication module, which is the elementary unit of an authentication chain.
 
     * ["Using Server-side Authentication Scripts in Authentication Modules"](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module). Authentication and Single Sign-On Guide.
+
+        Describes in details how to set up and try a scripted authentication module and an authentication chain using this module.
+
+        Instructions for setting up the Device Id (Match) module, the rest of the [Configuring Authentication Chains and Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#configure-authn-chains-modules) chapter, and this example can serve as a reference for setting up a custom authentication chain.
+
+
+
+The script will load an external library and make an HTTP request in order to get the client's IP information.
 
 ### IDM
 
@@ -972,21 +1037,20 @@ Scripting is broadly used in the components and broadly covered across [ForgeRoc
 
 * Debugging
 
-* Application
+* Application/Extension Points
 
-    * Managed Object Event Handlers
+    * Mapping (sync.json)
+    * Event hooks (managed.json)
+
+        Managed Object Event Handlers
+
     * Custom Endpoints/Actions
+    * Authentication / Authorization / Policy
 
     * OpenICF scripted
-    - Mapping (sync.json)
-    - Event hooks (managed.json)
-    - Custom endpoints
-    - Authentication / Authorization / Policy
-
-    - OpenICF scripted
-    - Workflow
-    - script eval
-    - Custom OSGi bundles
+    * Workflow
+    * Script evaluation
+    * Custom OSGi bundles
 
 * Examples
 
