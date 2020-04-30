@@ -45,7 +45,7 @@ When used for authentication in the front channel, AM allows for creating client
 
 The use case for a client-side script is collecting information about the user agent's properties and its environment: [Geolocation](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/geolocation), IP, and whatever else that could be collected with a custom script running in a browser. Thus, the script needs to be written in JavaScript compatible with the browser.
 
-From the client side, the data collected with the script can be submitted to the server and become available to the server-side scripts involved in the same authentication procedure.
+The data collected by a client-side script can be submitted to the server side and become available for the server components involved in the same authentication procedure.
 
 ### Server-Side Scripts
 
@@ -53,9 +53,17 @@ The decision making process on user identification and access management can be 
 
 > At the time of writing, the 6.5 version of AM is using Rhino version 1.7R4.
 
-AM supports two basic authentication workflows: `chains` and `trees`.
+The server-side scripts can accept data from the client-side ones, but the way the data is sent and received depends on the type of the authentication flow.
 
-The server-side scripts can accept data from the client side via a well-known variable in Authentication Chains or from the shared state object in Authentication Trees.
+### Authentication Chains and Authentication Trees
+
+AM supports two types of authentication: with [Authentication Modules and Chains](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#about-authentication-modules-and-chains) and with [Authentication Nodes and Trees](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-about-authentication-trees).
+
+A scriptable authentication module can use a pair of client-side and server-side scripts. Data collected with the client-side script can be submitted to the server as a single input and become available to the server-side script as a well-known variable.
+
+A scriptable authentication node in a tree can run arbitrary JavaScript on the client-side and receive data back by using interactive features named [callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks), as described in [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript) in Authentication Node Development Guide.
+
+In the following examples we will implement both.
 
 ### Scripting Authentication Chain Example
 
