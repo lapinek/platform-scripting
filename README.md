@@ -96,7 +96,7 @@ Sign in as an AM administrator, for example amadmin.
 
             The language for a client-side script is always JavaScript, for the script run time environment is going to be a browser.
 
-        * Script:
+        * <a id="client-side-script"></a>Script:
 
             ```javascript
             var script = document.createElement('script'); // 1
@@ -300,44 +300,43 @@ As authentication worries along, nodes in a tree may capture information and sav
     */
 
     import org.forgerock.openam.auth.node.api.*; // 1
+    import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback;
+    import com.sun.identity.authentication.callbacks.HiddenValueCallback;
 
-    import com.sun.identity.authentication.callbacks.ScriptTextOutputCallback; // 2
-    import com.sun.identity.authentication.callbacks.HiddenValueCallback; // 2
-
-    def script = ''' // 3
-    var script = document.createElement('script'); // 3
+    def script = ''' // 2
+    var script = document.createElement('script');
 
     script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';
-    script.onload = function (e) { // 4
+    script.onload = function (e) {
         $.getJSON('https://ipgeolocation.com/?json=1', function (json) {
-            document.getElementById('ip').value = JSON.stringify(json); // 7
+            document.getElementById('output').value = JSON.stringify(json);
 
             document.getElementById("loginButton_0").click();
         });
     }
 
-    document.getElementsByTagName('head')[0].appendChild(script); // 6
+    document.getElementsByTagName('head')[0].appendChild(script);
 
     setTimeout(function () {
         document.getElementById("loginButton_0").click()
-    }, 4000); // 8
+    }, 4000);
     '''
 
-    if (callbacks.isEmpty()) { // 9
+    if (callbacks.isEmpty()) { // 3
         action = Action.send([
-            new HiddenValueCallback("ip", "false"),
+            new HiddenValueCallback("output", "false"),
             new ScriptTextOutputCallback(script)
         ]).build();
-    } else {
+    } else { // 4
         def failure = true;
 
-        if (callbacks[0].getValue() != "ip") { // 10
-            sharedState.put("ipString", callbacks[0].getValue());
+        if (callbacks[0].getValue() != "output") {
+            sharedState.put("clientScriptOutputData", callbacks[0].getValue());
 
             failure = false;
         }
 
-        if (failure) {
+        if (failure) { // 5
             action = Action.goTo("false").build();
         } else {
             action = Action.goTo("true").build();
@@ -345,10 +344,19 @@ As authentication worries along, nodes in a tree may capture information and sav
     }
     ```
 
-    1. Enables the [Action]() interface and executing callbacks.
+    1. Enables [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action) and executing callbacks. The two callbacks used here allow for inserting a script in the user's browser and receiving a submitted form value from the client side, as described in [Supported Callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#supported-callbacks) in Development Guide.
 
+    2. A multiline representation of the script to be executed in the user's browser.
 
-    The next node in the tree will be able to retrieve the IP information by querying the shared state. For example:
+        The script is very similar to [the one we used in authentication chain](#client-side-script), except the form post is initiated by direct reference to the submit button.
+
+    3. We check if any callbacks have been requested by the node and if not, we specify the two for inserting the client-side script and receiving the form data. The callbacks are sent to the user's browser.
+
+    4. When the callbacks have been requested and the form input has been populated and submitted to the server side, we access the form value and save it in `clientScriptOutputData` key in the shared state object—making it available for the next node in the tree. It is a success, and we indicate it by setting the failure status to false.
+
+    5. Moving to the next node with the outcome set according to the failure status.
+
+    The next node in the tree will be able to retrieve the IP information by querying the shared state. A Groovy example:
 
     ```groovy
     /*
@@ -363,7 +371,7 @@ As authentication worries along, nodes in a tree may capture information and sav
 
     import groovy.json.JsonSlurper; // 4
 
-    def ip = new JsonSlurper().parseText(sharedState.get("ipString"));
+    def ip = new JsonSlurper().parseText(sharedState.get("clientScriptOutputData"));
     def id = IdUtils.getIdentity(sharedState.get("username"), sharedState.get("realm"));
 
     def failure = id.getAttribute("postalAddress").toArray()[0].indexOf(ip.postal) == -1;
@@ -381,7 +389,7 @@ As authentication worries along, nodes in a tree may capture information and sav
     var goTo = org.forgerock.openam.auth.node.api.Action.goTo;
     var getIdentity = com.sun.identity.idm.IdUtils.getIdentity;
 
-    var ip = JSON.parse(sharedState.get("ipString"));
+    var ip = JSON.parse(sharedState.get("clientScriptOutputData"));
 
     var id = getIdentity(sharedState.get("username"), sharedState.get("realm"));
 
@@ -401,15 +409,6 @@ As authentication worries along, nodes in a tree may capture information and sav
     Alternatively, the client-side data could be processed in the same Scripted Decision node.
 
     In future versions of AM, there may already be predefined nodes to perform certain client-side operations. There is also an authentication node for version 6.5 that allows to run custom JavaScript in the user's browser: [Client Script Auth Tree Node](https://backstage.forgerock.com/marketplace/api/catalog/entries/AWAm-FCxfKvOhw29pnIp).
-
-    References:
-
-    * [Scripted Decision Node API Functionality](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripting-api-node). Authentication and Single Sign-On Guide.
-    * [Scripted Decision Node](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#auth-node-scripted-decision). Authentication and Single Sign-On Guide.
-    * [Using Callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks). Development Guide.
-    * [Supported Callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#supported-callbacks). Development Guide.
-    * [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript).  Authentication Node Development Guide.
-    * [Accessing an Identity's Profile](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-user-profile). Authentication Node Development Guide.
 
 1. Debugging
 
@@ -887,6 +886,21 @@ A multiline script can be defined in a configuration file as an array of strings
 
 * Security
 
+    * Across products, administrative access is required for script management.
+
+    1. AM
+
+        * Java Class Whitelist
+        * Java Class Blacklist
+
+    1. IDM
+
+        * No script specific security?
+
+    1. IG
+
+        * No script specific security?
+
 * Debugging
 
 * Application and Environment
@@ -922,15 +936,13 @@ The scripting objectives and implementation are driven by the component's functi
 
 There are certain similarities too: the choice of scripting languages, ability to access the underlying Java functionality and the component's context data, logging methods, access to the request object, and ability to make back-channel network requests. In some deployments, the scripts configuration can be exported and tracked in the file system.
 
+The ability of scripts to communicate with external network resources is a powerful tool. The current security measures do not seem to apply restrictions to endpoints a script may access, which may represent an additional concern about the script's overall security if the administrative UI/API protections can be breached.
+
 Scripts add flexibility to the ForgeRock Identity Platform. While a script may not be performing as well as a native/standard implementation, the scripts can be used to substitute functionality not yet present in the current version of the softwares.
 
 ## <a id="references"></a>References
 
 [Back to the Top](#top)
-
-### Groovy
-
-* [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
 
 ### AM
 
@@ -946,6 +958,8 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script may n
 
 * Languages
 
+    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
+
 
 * Management
 
@@ -956,8 +970,7 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script may n
 
 * Security
 
-    * Java Class Whitelist
-    * Java Class Blacklist
+    * [Security](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#script-engine-security)
 
 * Debugging
 
@@ -976,11 +989,19 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script may n
 
         * Trees
 
+            * [Accessing an Identity's Profile](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-user-profile). Authentication Node Development Guide.
+
+            * [Scripted Decision Node](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#auth-node-scripted-decision). Authentication and Single Sign-On Guide.
+
             * [Scripted Decision Node API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node). Development Guide.
 
                 Client-side and Server-side scripting in Authentication Trees.
 
-            * [The Node Class](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-class). Authentication Node Development Guide.
+            * [Using Callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks). Development Guide.
+
+            * [Supported Callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#supported-callbacks). Development Guide.
+
+            * [The Node Class](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-class) and [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action). Authentication Node Development Guide.
 
     * Authorization
         * Access Token Modification
