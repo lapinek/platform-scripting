@@ -276,11 +276,17 @@ Sign in as an AM administrator, for example amadmin.
 
     AM does not provide an option for connecting a debugger. However, Global Scripting API Functionality facilitates [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger), which you can set as described in this Setup and Maintenance Guide chapter.
 
-    For example, for the server-side scripts defined in AM console that are a part of an authentication chain, like the one we created, you could go to the `your-am-instance/Debug.jsp` page, select "amScript" for Debug instances and "Message" for Level. Then, whenever in your script you use `logger.message` method, the output will be saved in the logs, along with any warnings and errors.
+    Debug logging for scripting service and individual scripts could be configured as described in the Development Guide at [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
 
-    Then, to access the logs, you can navigate to `your-am-instance/debug` directory in Terminal and `tail -f` the log file of interest; in this case the `Authentication` file.
+    > AM server debugging configuration can be found in the administrative console under CONFIGURE > SERVER DEFAULTS > General > Debugging. The Debug Directory setting specifies location of the log files. Managing server-wide debugging settings is described in the Setup and Maintenance Guide under [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging).
+
+    For example, for the server-side scripts defined in AM console that are a part of an authentication chain, like the one we created, you could navigate to the `your-am-instance/Debug.jsp` page, select "amScript" for Debug instances and "Message" for Level. Then, whenever in your script you use `logger.message` method, the output will be saved in the logs, along with any warnings and errors.
+
+    Then, to access the logs, you can navigate to `your-am-instance-debugging-directory` in Terminal and `tail -f` the log file of interest; in this case the `Authentication` file.
 
     Alternatively, during development, you could use the `logger.error` method without changing the default debugging configuration, for the "Error" level is always on.
+
+    > JavaScript `console.log` and Rhino's `print` are not implemented for server-side scripts. The client-side JavaScript can output logs into the browser's console as usual.
 
 ### Scripting Authentication Tree Example
 
@@ -365,37 +371,77 @@ As authentication worries along, nodes in a tree may capture information and sav
     */
 
     import org.forgerock.openam.auth.node.api.*; // 1
+    import com.sun.identity.idm.IdUtils; // 2
+    import groovy.json.JsonSlurper; // 3
 
-    // import com.sun.identity.idm.AMIdentity; // 2
-    import com.sun.identity.idm.IdUtils; // 3
+    def id = IdUtils.getIdentity(sharedState.get("username"), sharedState.get("realm")); // 2
 
-    import groovy.json.JsonSlurper; // 4
+    def ip = new JsonSlurper().parseText(sharedState.get("clientScriptOutputData")); // 3
 
-    def ip = new JsonSlurper().parseText(sharedState.get("clientScriptOutputData"));
-    def id = IdUtils.getIdentity(sharedState.get("username"), sharedState.get("realm"));
+    def failure = id.getAttribute("postalAddress").toArray()[0].indexOf(ip.postal) == -1; // 4
 
-    def failure = id.getAttribute("postalAddress").toArray()[0].indexOf(ip.postal) == -1;
+    def request = new org.forgerock.http.protocol.Request(); // 5
+    request.setUri("https://jsonplaceholder.typicode.com/users/");
+    request.setMethod("GET");
 
-    if (failure) {
+    def response = httpClient.send(request).get(); // 6
+    def users = new JsonSlurper().parseText(response.getEntity().toString());
+
+    failure = failure || users.find() { // 7
+        it.username == sharedState.get("username") ||
+        it.email == id.getAttribute("mail").toArray()[0]; // etc.
+    };
+
+    if (failure) { // 8
         action = Action.goTo("false").build();
     } else {
         action = Action.goTo("true").build();
     }
     ```
 
+    1. Enables [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action).
+
+    2. Accessing AM identity attributes.
+
+    3. Parsing the stringified JSON received from the client-script and preserved in the shared state.
+
+    4. The outcome is defined by matching an attribute from the client data and one from the AM user's identity.
+
+    5. Preparing a network request as described in [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-http-client) in the Development Guide.
+
+    6. The response is received and parsed.
+
+    7. The outcome is based on NOT finding the user in the online resource, which represents a "black list".
+
+    8. Proceeding to the next node.
+
     Or, a JavaScript equivalent:
 
     ```javascript
-    var goTo = org.forgerock.openam.auth.node.api.Action.goTo;
-    var getIdentity = com.sun.identity.idm.IdUtils.getIdentity;
+    var goTo = org.forgerock.openam.auth.node.api.Action.goTo; // 1
+    var getIdentity = com.sun.identity.idm.IdUtils.getIdentity; // 2
 
-    var ip = JSON.parse(sharedState.get("clientScriptOutputData"));
+    var id = getIdentity(sharedState.get("username"), sharedState.get("realm")); // 2
 
-    var id = getIdentity(sharedState.get("username"), sharedState.get("realm"));
+    var ip = JSON.parse(sharedState.get("clientScriptOutputData")); // 3
 
-    var failure = id.getAttribute("postalAddress").toArray()[0].indexOf(ip.postal) == -1;
+    var failure = id.getAttribute("postalAddress").toArray()[0].indexOf(ip.postal) == -1; // 4
 
-    if (failure) {
+    var request = new org.forgerock.http.protocol.Request(); // 5
+    request.setUri("https://jsonplaceholder.typicode.com/users/");
+    request.setMethod("GET");
+
+    var response = httpClient.send(request).get(); // 6
+    var users = JSON.parse(response.getEntity());
+
+    failure = failure || users.some(function (user) { // 7
+        return (
+            user.username === sharedState.get("username") ||
+            user.email === id.getAttribute("mail").toArray()[0] // etc.
+        );
+    });
+
+    if (failure) { // 8
         action = goTo("false").build();
     } else {
         action = goTo("true").build();
@@ -406,13 +452,23 @@ As authentication worries along, nodes in a tree may capture information and sav
 
     <img src="README_files/am.authentication-tree.scripted-decision-module.png" alt="Authentication Tree with the Scripted Decision node." width="1024">
 
-    Alternatively, the client-side data could be processed in the same Scripted Decision node.
+    Following the "single task per node" philosophy, processing client-side data is split into two steps, but as an alternative it could be done in the same Scripted Decision node.
 
-    In future versions of AM, there may already be predefined nodes to perform certain client-side operations. There is also an authentication node for version 6.5 that allows to run custom JavaScript in the user's browser: [Client Script Auth Tree Node](https://backstage.forgerock.com/marketplace/api/catalog/entries/AWAm-FCxfKvOhw29pnIp).
+    In future versions of AM, there may already be predefined nodes to perform certain client-side operations. There is also a marketplace authentication node for version 6.5 that allows to run custom JavaScript in the user's browser: [Client Script Auth Tree Node](https://backstage.forgerock.com/marketplace/api/catalog/entries/AWAm-FCxfKvOhw29pnIp).
 
 1. Debugging
 
-    If a script associated with the Scripted Decision node outputs logs of the allowed level set with Debug.jsp, the script specific log file is created under the `your-am-instance/debug` directory. For example:
+    The Debug instances input on `your-am-instance/Debug.jsp` page will list the Decision Node scripts in the following format:
+
+    scripts.AUTHENTICATION_TREE_DECISION_NODE._script-id_
+
+    The script ID part correspond to the Realms > _Realm Name_ > Scripts > _script-id_ in AM console on a script details page. For example:
+
+    <img alt="Script ID in AM Console" src="README_files/am.scripts.script-id.png" width="1024" />
+
+   <img alt="Script ID on the Debug.jsp page" src="README_files/am.debug.debug-instances.script-id.png" width="1024" />
+
+    When a script associated with the Scripted Decision node outputs logs (at the allowed level set with `Debug.jsp`), the script specific log file is created under `your-am-instance-debugging-directory`. For example:
 
     ```bash
     $ cd ~/openam/am/debug$
@@ -431,11 +487,6 @@ As authentication worries along, nodes in a tree may capture information and sav
     > In the example above, parsing JSON with `groovy.json.JsonSlurper` (in the Groovy version of the script) would require the `groovy.json.internal.LazyMap` class to be allowed in the scripting engine setting. For getting identity with the `IdUtils` method, `com.sun.identity.idm.AMIdentity` would have to be white listed.
 
     You can specify allowed and dis-allowed Java classes in AM administrative console at Realms > _Realm Name_ > Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_TREE_DECISION_NODE > Secondary Configurations > EngineConfiguration > Java class whitelist/Java class blacklist.
-
-    References
-
-    * [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging). Setup and Maintenance Guide.
-    * [Scripted Authentication Module Properties](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#authn-scripted). Authentication and Single Sign-On Guide.
 
 ## <a id="example-idm"></a>IDM
 
@@ -700,7 +751,7 @@ As described in the [Calling a Script From a Configuration File](https://backsta
 ```json
 {
     "filters" : [
-        {" . . . "},
+
         {
             "pattern" : "^(managed|system|internal)($|(/.+))",
             "onRequest" : {
@@ -717,7 +768,7 @@ As described in the [Calling a Script From a Configuration File](https://backsta
                 "patch"
             ]
         },
-        {" . . . "}
+
     ]
 }
 ```
@@ -752,12 +803,12 @@ Similar to IDM, IG allows to specify script content either inline in a configura
 
 ```json
 {
-    . . .
+
      "handler": {
         "type": "Chain",
         "config": {
             "filters": [
-                . . .
+
                 {
                     "name": "ScriptableFilter",
                     "type": "ScriptableFilter",
@@ -770,7 +821,7 @@ Similar to IDM, IG allows to specify script content either inline in a configura
                         "file": "example.groovy"
                     }
                 },
-                . . .
+
             ],
             "handler": "someHandler"
         }
@@ -936,7 +987,7 @@ The scripting objectives and implementation are driven by the component's functi
 
 There are certain similarities too: the choice of scripting languages, ability to access the underlying Java functionality and the component's context data, logging methods, access to the request object, and ability to make back-channel network requests. In some deployments, the scripts configuration can be exported and tracked in the file system.
 
-The ability of scripts to communicate with external network resources is a powerful tool. The current security measures do not seem to apply restrictions to endpoints a script may access, which may represent an additional concern about the script's overall security if the administrative UI/API protections can be breached.
+The ability of scripts to communicate with external network resources is a powerful tool. The current security measures do not seem to apply restrictions to endpoints a script may access, which may represent an additional concern about the script's overall security if the administrative UI/API protections can be breached. However, because the same administrative privileges that allow manage scripts will likely allow to change other configuration points, the network restriction policies may need to be implemented outside of a product configuration.
 
 Scripts add flexibility to the ForgeRock Identity Platform. While a script may not be performing as well as a native/standard implementation, the scripts can be used to substitute functionality not yet present in the current version of the softwares.
 
@@ -956,6 +1007,10 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script may n
 
         The scripting engine configuration.
 
+    * [Customizing Authentication](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#chap-authn-customization). Authentication and Single Sign-On Guide.
+
+        Customizing authentication trees and chains.
+
 * Languages
 
     * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
@@ -974,7 +1029,15 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script may n
 
 * Debugging
 
+    * [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging). Setup and Maintenance Guide.
+
 * Application and Environment
+
+    * [https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global). Development Guide.
+
+    * [AM 6.5.2.3 Public API Javadoc](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html). OpenAM Server Only 6.5.2.3 Documentation.
+
+        Describes available Java interfaces.
 
     * Authentication
 
@@ -984,18 +1047,17 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script may n
 
                 The functionality available for scripted authentication modules.
 
-            * Client-side Script
-            * Server-side Script
+            * [Scripted Authentication Module Properties](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#authn-scripted). Authentication and Single Sign-On Guide.
+
+            * [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module). Authentication and Single Sign-On Guide.
 
         * Trees
-
-            * [Accessing an Identity's Profile](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-user-profile). Authentication Node Development Guide.
-
-            * [Scripted Decision Node](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#auth-node-scripted-decision). Authentication and Single Sign-On Guide.
 
             * [Scripted Decision Node API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node). Development Guide.
 
                 Client-side and Server-side scripting in Authentication Trees.
+
+            * [Scripted Decision Node](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#auth-node-scripted-decision). Authentication and Single Sign-On Guide.
 
             * [Using Callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks). Development Guide.
 
@@ -1008,11 +1070,6 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script may n
         * OIDC Claims
         * Scripted Policy Condition
 
-    * Common
-
-        * [AM 6.5.2.3 Public API Javadoc](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html). OpenAM Server Only 6.5.2.3 Documentation.
-
-            Describes available Java interfaces.
 
 * Examples
 
