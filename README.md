@@ -51,7 +51,7 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script might
 
     For supporting server-side JavaScript, AM and IDM use [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino)—the scripting engine that has access to the Java environment provided by the corresponding component.
 
-    > At the time of this writing, the 6.5 version of AM was using Rhino version 1.7R4 and IDM was using version 1.7.12_1.
+    > At the time of this writing, the 6.5 version of AM was using Rhino version 1.7R4 and IDM was using version 1.7.12_1. Both products were using Groovy version 2.5.7.
 
     All three components support server-side scripting in Groovy.
 
@@ -997,7 +997,13 @@ A multiline script can be defined in a configuration file as an array of strings
 
 [Back to the Top](#top)
 
-### AM
+* [AM](#references-am)
+* [IDM](#references-idm)
+* [IG](#references-ig)
+
+### <a id="references-am"></a>AM
+
+[Back to References](#references)
 
 * Introduction
 
@@ -1090,7 +1096,9 @@ A multiline script can be defined in a configuration file as an array of strings
 
 The script will load an external library and make an HTTP request in order to get the client's IP information.
 
-### IDM
+### <a id="references-idm"></a>IDM
+
+[Back to References](#references)
 
 * Introduction
 
@@ -1122,13 +1130,19 @@ The script will load an external library and make an HTTP request in order to ge
 
 * Environment
 
-    * [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-scripting). Integrator's Guide.
-
-    * [OpenICF Framework 1.5.6.0 Documentation](https://backstage.forgerock.com/docs/idm/6.5/apidocs/).
-
 * Debugging
 
-* Application/Extension Points
+* Application and Environment
+
+    * [Configuring HTTP Clients](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#http-client-config). Integrator's Guide.
+
+    * [Accessing Data Objects By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#data-scripts). Integrator's Guide.
+
+    * [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-scripting). Integrator's Guide.
+
+    * [Router Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-router). Integrator's Guide.
+
+    * [OpenICF Framework 1.5.6.0 Documentation](https://backstage.forgerock.com/docs/idm/6.5/apidocs/).
 
     * Mapping (sync.json)
     * Event hooks (managed.json)
@@ -1152,7 +1166,9 @@ The script will load an external library and make an HTTP request in order to ge
 
     *
 
-### IG
+### <a id="references-ig"></a>IG
+
+[Back to References](#references)
 
 * Introduction
 
