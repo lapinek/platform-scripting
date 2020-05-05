@@ -33,15 +33,17 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script might
 
 [Back to the Top](#top)
 
-This section is a short overview of different scripting aspects in the three products. The [References](#references) section contains links to the docs organized in a similar way.
+This section is a short overview of different scripting aspects in the three products.
 
-* <a id="summary-application-and-environment"></a>Application and Environment
+The [References](#references) section contains collection of links to the corresponding documentation and the links are organized in a similar way: by area of concern and by product.
+
+* ### <a id="summary-application-and-environment"></a>Application and Environment
 
     Scripting application is augmenting or extending native functionality of a product. The extension points could be events associated with an object or a procedure; for example, an update event on a managed object in IDM. Or, the scripts could represent an essential part of a procedure, necessary for its successful completion; for example, scripts employed in AM authentication flows.
 
     Scripts' environment could be described as access to methods and data. This may depend on the context the script is running in: the product and the particular procedure the script is extending. Even within the same product, the context may vary as the product components implement different functionality and expose different APIs.
 
-    ### AM
+    ### <a id="summary-application-and-environment-am"></a> AM
 
     Scripting application in AM could be summarized into the following categories:
 
@@ -109,7 +111,7 @@ This section is a short overview of different scripting aspects in the three pro
 
     You can find details on APIs available to server-side scripts in AM in the docs, under [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts) and [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition).
 
-    In addition, scripts included in the default AM configuration, accessible in the administrative console under Realms > _Realm Name_ > Scripts, can server as a great source of example scripting for all script types:
+    In addition, scripts included in the default AM configuration, accessible in the administrative console under Realms > _Realm Name_ > Scripts, can serve as a great source of example scripting for all script types:
 
     * Client-side Authentication
     * Server-side Authentication
@@ -134,7 +136,7 @@ This section is a short overview of different scripting aspects in the three pro
 
     The router service provides the uniform interface to all IDM objects, as described in IDM's  Integrator's Guide under [Router Service Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-router).
 
-* <a id="summary-managing-scripts"></a>Managing Scripts
+* ### <a id="summary-managing-scripts"></a>Managing Scripts
 
     ### AM
 
@@ -174,7 +176,7 @@ This section is a short overview of different scripting aspects in the three pro
         }
         ```
 
-* Languages
+* ### <a id="summary-languages"></a>Languages
 
     All three components support server-side scripting in Groovy.
 
@@ -188,7 +190,7 @@ This section is a short overview of different scripting aspects in the three pro
 
     IG does not currently support JavaScript in any form.
 
-* Security
+* ### <a id="summary-security"></a>Security
 
     * Across products, administrative access is required for script management.
 
@@ -205,7 +207,58 @@ This section is a short overview of different scripting aspects in the three pro
 
         * No script specific security?
 
-* Debugging
+* ### <a id="summary-debugging"></a>Debugging
+
+    ### <a id="summary-debugging-am"></a> AM
+
+    AM does not provide an option for connecting a debugger. However, Global Scripting API Functionality facilitates [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger), which you can set as described in this Setup and Maintenance Guide chapter.
+
+    Debug logging for scripting service and individual scripts could be configured as described in the Development Guide at [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
+
+    > AM server debugging configuration can be found in the administrative console under CONFIGURE > SERVER DEFAULTS > General > Debugging. The Debug Directory setting specifies location of the log files. Managing server-wide debugging settings is described in the Setup and Maintenance Guide under [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging).
+
+    For example, for the server-side scripts defined in AM console that are a part of an authentication chain, like the one we created, you could navigate to the `your-am-instance/Debug.jsp` page, select "amScript" for Debug instances and "Message" for Level. Then, whenever in your script you use `logger.message` method, the output will be saved in the logs, along with any warnings and errors.
+
+    Then, to access the logs, you can navigate to `your-am-instance-debugging-directory` in Terminal and `tail -f` the log file of interest; in this case the `Authentication` file.
+
+    Alternatively, during development, you could use the `logger.error` method without changing the default debugging configuration, for the "Error" level is always on.
+
+    > JavaScript `console.log` and Rhino's `print` are not implemented for server-side scripts. The client-side JavaScript can output logs into the browser's console as usual.
+
+
+    The Debug instances input on `your-am-instance/Debug.jsp` page will list the Decision Node scripts in the following format:
+
+    scripts.AUTHENTICATION_TREE_DECISION_NODE._script-id_
+
+    The script ID part correspond to the Realms > _Realm Name_ > Scripts > _script-id_ in AM console on a script details page. For example:
+
+    <img alt="Script ID in AM Console" src="README_files/am.scripts.script-id.png" width="1024" />
+
+   <img alt="Script ID on the Debug.jsp page" src="README_files/am.debug.debug-instances.script-id.png" width="1024" />
+
+    When a script associated with the Scripted Decision node outputs logs (at the allowed level set with `Debug.jsp`), the script specific log file is created under `your-am-instance-debugging-directory`. For example:
+
+    ```bash
+    $ cd ~/openam/am/debug$
+    $ ls
+    Authentication  CoreSystem  IdRepo  scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
+    ```
+
+    ```bash
+    $ tail -f scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
+    scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc:04/26/2020 07:34:02:654 PM GMT: Thread[ScriptEvaluator-5,5,main]: TransactionId[88093018-65c0-4987-b7af-ef1429ac1c04-46398]
+    ERROR: Helpful error description.
+    ```
+
+    If an error occurs that is not handled within the script itself, it may be reported in the Authentication log. For example, it you try to employ a Java package that is not white listed in the scripting engine settings, the "Access to Java class . . . is prohibited." error will appear in the Authentication log.
+
+    > In the example above, parsing JSON with `groovy.json.JsonSlurper` (in the Groovy version of the script) would require the `groovy.json.internal.LazyMap` class to be allowed in the scripting engine setting. For getting identity with the `IdUtils` method, `com.sun.identity.idm.AMIdentity` would have to be white listed.
+
+    You can specify allowed and dis-allowed Java classes in AM administrative console at Realms > _Realm Name_ > Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_TREE_DECISION_NODE > Secondary Configurations > EngineConfiguration > Java class whitelist/Java class blacklist.
+
+    ### <a id="summary-debugging-idm"></a> IDM
+
+    ### <a id="summary-debugging-ig"></a> IG
 
 ## Summary Table for Server-Side Scripts
 
@@ -449,22 +502,6 @@ Sign in as an AM administrator, for example amadmin.
 
     > If you'd like to use custom identity attributes, their management is covered in [Setting Up Identity Stores](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-datastores).
 
-1. Debugging
-
-    AM does not provide an option for connecting a debugger. However, Global Scripting API Functionality facilitates [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger), which you can set as described in this Setup and Maintenance Guide chapter.
-
-    Debug logging for scripting service and individual scripts could be configured as described in the Development Guide at [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
-
-    > AM server debugging configuration can be found in the administrative console under CONFIGURE > SERVER DEFAULTS > General > Debugging. The Debug Directory setting specifies location of the log files. Managing server-wide debugging settings is described in the Setup and Maintenance Guide under [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging).
-
-    For example, for the server-side scripts defined in AM console that are a part of an authentication chain, like the one we created, you could navigate to the `your-am-instance/Debug.jsp` page, select "amScript" for Debug instances and "Message" for Level. Then, whenever in your script you use `logger.message` method, the output will be saved in the logs, along with any warnings and errors.
-
-    Then, to access the logs, you can navigate to `your-am-instance-debugging-directory` in Terminal and `tail -f` the log file of interest; in this case the `Authentication` file.
-
-    Alternatively, during development, you could use the `logger.error` method without changing the default debugging configuration, for the "Error" level is always on.
-
-    > JavaScript `console.log` and Rhino's `print` are not implemented for server-side scripts. The client-side JavaScript can output logs into the browser's console as usual.
-
 ### <a id="am-scripting-a-tree"></a>AM > Scripting Authentication Tree Example
 
 As authentication worries along, nodes in a tree may capture information and save it in a special object named SharedState that will be available for the next node in the tree.
@@ -634,38 +671,6 @@ As authentication worries along, nodes in a tree may capture information and sav
     Following the "single task per node" philosophy, processing client-side data is split into two steps, but as an alternative it could be done in the same Scripted Decision node.
 
     In future versions of AM, there may already be predefined nodes to perform certain client-side operations. There is also a marketplace authentication node for version 6.5 that allows to run custom JavaScript in the user's browser: [Client Script Auth Tree Node](https://backstage.forgerock.com/marketplace/api/catalog/entries/AWAm-FCxfKvOhw29pnIp).
-
-1. Debugging
-
-    The Debug instances input on `your-am-instance/Debug.jsp` page will list the Decision Node scripts in the following format:
-
-    scripts.AUTHENTICATION_TREE_DECISION_NODE._script-id_
-
-    The script ID part correspond to the Realms > _Realm Name_ > Scripts > _script-id_ in AM console on a script details page. For example:
-
-    <img alt="Script ID in AM Console" src="README_files/am.scripts.script-id.png" width="1024" />
-
-   <img alt="Script ID on the Debug.jsp page" src="README_files/am.debug.debug-instances.script-id.png" width="1024" />
-
-    When a script associated with the Scripted Decision node outputs logs (at the allowed level set with `Debug.jsp`), the script specific log file is created under `your-am-instance-debugging-directory`. For example:
-
-    ```bash
-    $ cd ~/openam/am/debug$
-    $ ls
-    Authentication  CoreSystem  IdRepo  scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
-    ```
-
-    ```bash
-    $ tail -f scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
-    scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc:04/26/2020 07:34:02:654 PM GMT: Thread[ScriptEvaluator-5,5,main]: TransactionId[88093018-65c0-4987-b7af-ef1429ac1c04-46398]
-    ERROR: Helpful error description.
-    ```
-
-    If an error occurs that is not handled within the script itself, it may be reported in the Authentication log. For example, it you try to employ a Java package that is not white listed in the scripting engine settings, the "Access to Java class . . . is prohibited." error will appear in the Authentication log.
-
-    > In the example above, parsing JSON with `groovy.json.JsonSlurper` (in the Groovy version of the script) would require the `groovy.json.internal.LazyMap` class to be allowed in the scripting engine setting. For getting identity with the `IdUtils` method, `com.sun.identity.idm.AMIdentity` would have to be white listed.
-
-    You can specify allowed and dis-allowed Java classes in AM administrative console at Realms > _Realm Name_ > Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_TREE_DECISION_NODE > Secondary Configurations > EngineConfiguration > Java class whitelist/Java class blacklist.
 
 ## <a id="example-idm"></a>IDM
 
