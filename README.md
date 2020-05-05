@@ -59,7 +59,9 @@ This section is a short overview of different scripting aspects in the three pro
         * Scripting Policy Condition
         * Access Token Modification
 
-    * Processing OIDC Claims
+    * Federation
+
+        * OIDC Claims Handling
 
     #### <a id="am-scripting-client-side"></a>AM > Client-Side Scripts
 
@@ -106,6 +108,15 @@ This section is a short overview of different scripting aspects in the three pro
     * Authorization scripts have access to authorization state, which includes passed in data, and can set authorization response attributes.
 
     You can find details on APIs available to server-side scripts in AM in the docs, under [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts) and [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition).
+
+    In addition, scripts included in the default AM configuration, accessible in the administrative console under Realms > _Realm Name_ > Scripts, can server as a great source of example scripting for all script types:
+
+    * Client-side Authentication
+    * Server-side Authentication
+    * Decision node script for authentication trees
+    * OAuth2 Access Token Modification
+    * OIDC Claims
+    * Policy Condition
 
     #### <a id="am-trees-and-chains"></a>AM > Server-side Scripts in Authentication Chains and Authentication Trees
 
