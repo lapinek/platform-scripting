@@ -1,7 +1,7 @@
 
 # <a id="top"></a>Dynamic Scripting in ForgeRock Platform
 
-Three of ForgeRock Identity Platform products, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with dynamically applied, context-specific scripts written in JavaScript and Groovy.
+Three of ForgeRock Identity Platform products, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with dynamically applied, context-specific scripts written in JavaScript and Groovy and evaluated during the run time.
 
 Scripting is broadly used in the products and broadly covered across [ForgeRock Product Documentation](https://backstage.forgerock.com/docs/). There are many articles describing scripting environment and application, often in a context of particular task and supplied with examples. Other places in the documentation cover functionality that is not directly related to scripting, but can be employed by scripts.
 
@@ -9,12 +9,12 @@ This writing aims at a quick introduction to scripting across the Platform—via
 
 ## Contents
 
+* [Conclusion](#conclusion)
 * [Summary](#summary)
 * [An Example of Scripting in ForgeRock Components](#example)
     * [AM](#example-am)
     * [IDM](#example-idm)
     * [IG](#example-ig)
-* [Conclusion](#conclusion)
 * [References](#references)
 
 ## <a id="conclusion"></a>Conclusion
@@ -23,7 +23,7 @@ This writing aims at a quick introduction to scripting across the Platform—via
 
 The scripting objectives and implementation are driven by the product's functionality and the environment it provides. Hence, the scripts' location, configuration, security, the data and methods a script can use, and the way the scripts are managed are specific to a product.
 
-There are certain similarities as well: the choice of scripting languages, ability to access the underlying Java functionality and the context data, logging methods, access to the request object, and ability to make back-channel network requests—all converge into a similar experience at certain level. The script configuration and content for all three products could be represented as JSON and saved in the file system.
+There are certain similarities as well: the choice of scripting languages, ability to access the underlying Java functionality and the context data, logging methods, access to the request object, and ability to make back-channel HTTP requests—all converge into a similar experience at certain level. The script configuration and content for all three products could be represented as JSON and saved in the file system.
 
 The ability of scripts to communicate with external network resources is a powerful tool. The current security measures do not seem to apply restrictions to endpoints a script may access, which may represent an additional concern about the script's overall security if the administrative UI/API protections can be breached. However, because the same administrative privileges that allow manage scripts will likely allow to change other configuration, the network restriction policies may need to be implemented outside of the product configuration.
 
@@ -33,39 +33,113 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script might
 
 [Back to the Top](#top)
 
+This section is a short overview of different scripting aspects in the three products. The [References](#references) section contains links to the docs organized in a similar way.
+
 * <a id="summary-application-and-environment"></a>Application and Environment
 
-    Scripts' environment could be described as access to methods and data. Both may depend on the context the script is running in: the product and the particular procedure the script is extending. Even within a product, the context may change significantly as the product components implement different functionality.
+    Scripting application is augmenting or extending native functionality of a product. The extension points could be events associated with an object or a procedure; for example, an update event on a managed object in IDM. Or, the scripts could represent an essential part of a procedure, necessary for its successful completion; for example, scripts employed in AM authentication flows.
 
-    * AM
+    Scripts' environment could be described as access to methods and data. This may depend on the context the script is running in: the product and the particular procedure the script is extending. Even within the same product, the context may vary as the product components implement different functionality and expose different APIs.
 
-        From scripts, AM makes _synchronous_ network requests with the HTTP client object that are blocking until the script returns or times out according to the Server-side Script Timeout setting, which could be in the AM console under Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_SERVER_SIDE > Secondary Configurations > EngineConfiguration, as described in [Scripted Authentication Module Properties](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#authn-scripted).
+    ### AM
 
-    * IDM
+    Scripting application in AM could be summarized into the following categories:
 
-        The router service provides the uniform interface to all IDM objects, as described in IDM's  Integrator's Guide under [Router Service Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-router).
+    * Authentication
 
-* Languages
+        * Modules and Chains
+            * Client-side
+            * Server-side
+        * Trees
+            * Client-side
+            * Server-side
 
-    All three components support scripting in Groovy.
+    * Authorization
 
-    For supporting server-side JavaScript, AM and IDM use [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino)—the scripting engine that has access to the Java environment provided by the corresponding component.
+        * Scripting Policy Condition
+        * Access Token Modification
 
-    > At the time of this writing, the 6.5 version of AM was using Rhino version 1.7R4 and IDM was using version 1.7.12_1. Both products were using Groovy version 2.5.7.
+    * Processing OIDC Claims
 
-    All three components support server-side scripting in Groovy.
+    #### <a id="am-scripting-client-side"></a>AM > Client-Side Scripts
 
-    AM allows for client-side scripts, which run in the browser environment. The server-side scripts, running on Rhino, can have access to data obtained with a client-side script.
+    AM may be used for authentication in the front channel. This can be assisted with custom client-side scripts written in JavaScript and executed in the user agent.
 
-    IDM does not support client-side custom JavaScript. IG does not currently support any scripting in JavaScript.
+    The use case for a client-side script is collecting information about the user agent's properties and its environment: [Geolocation](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/geolocation), IP, and whatever else that could be collected with a custom script running in a browser. Thus, the script needs to be written in JavaScript compatible with the browser, has access to the browser properties, and can make requests to external network resources _from the browser_. It could be used, for example, for detecting the client's IP.
 
-* Management
+    The data collected by a client-side script can be submitted to the server side and become available for the server components involved in the same authentication procedure.
+
+    Scriptable access to the browser environment seems to be a unique feature of authentication procedures in AM, in comparison to the other script applications in the three products.
+
+    #### <a id="am-scripting-server-side"></a>AM > Server-Side Scripts
+
+    The decision making process on user identification and access management can be aided with the server-side scripts. The server-side scripts can be written in Groovy or JavaScript running on Rhino.
+
+    [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global) describes objects universally available for server-side scripts in AM. It also covers logging options, which is the only means of debugging server-side scripts in AM.
+
+    [OpenAM Server Only 6.5.2.3 Documentation](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html) describes the single default source of Java functionality available for the server-side scripts, although some features may only make sense in certain contexts.
+
+    > For example, the `org.forgerock.openam.auth.node.api.Action` class, representing [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action), is applicable only in the context of authentication nodes and trees, but it is not usable in authentication modules.
+
+    All server-side scripts have access to the following functionality:
+
+    * [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-http-client) with the client object, httpClient, and the `org.forgerock.http.protocol` package.
+
+        From scripts, AM makes synchronous, blocking network requests with the HTTP client object that are blocking until the script returns or times out according to the Server-side Script Timeout setting, which could be in the AM console under Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_SERVER_SIDE > Secondary Configurations > EngineConfiguration.
+
+    * [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger) with the `logger` object methods.
+
+    Although via different methods and objects, the server-side scripts are also capable of:
+
+    * Accessing request data.
+
+        Limited to request headers in authentication nodes.
+
+    * Accessing profile data, when `username` is available.
+
+        This means read, add, and update access to the AM identity attributes.
+
+    * Accessing existing session data.
+
+    * Authentication scripts have access to authentication state in chains and shared and transient state in trees.
+
+    * Authorization scripts have access to authorization state, which includes passed in data, and can set authorization response attributes.
+
+    You can find details on APIs available to server-side scripts in AM in the docs, under [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts) and [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition).
+
+    #### <a id="am-trees-and-chains"></a>AM > Server-side Scripts in Authentication Chains and Authentication Trees
+
+    The server-side authentication functionality can accept data collected by the client-side scripts, but the way the data is sent and received depends on the type of the authentication flow.
+
+    AM supports two types of authentication: with [Authentication Modules and Chains](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#about-authentication-modules-and-chains) and with [Authentication Nodes and Trees](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-about-authentication-trees).
+
+    A scriptable authentication module can use a pair of client-side and server-side scripts. Data collected with the client-side script can be used to populate the `output` input in automatically provided form. The form can be submitted to the server, automatically or by using provided `submit()` method. Then, the string value of the `output` input becomes available to the server-side script as a well-known variable, `clientScriptOutputData`.
+
+    A scriptable authentication node in a tree can run arbitrary JavaScript on the client-side and receive data back by using interactive features named [callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks), as described in [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript) in Authentication Node Development Guide.
+
+    ### IDM
+
+    Scripts in IDM provide functionality to the [Managed Object Triggers](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#managed-object-triggers).
+
+    The router service provides the uniform interface to all IDM objects, as described in IDM's  Integrator's Guide under [Router Service Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-router).
+
+* <a id="summary-managing-scripts"></a>Managing Scripts
+
+    ### AM
+
+    The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter shows how the scripts can be managed via REST and command line interfaces. These may represent the most efficient way to manage scripts in automated environments; for example, in production deployments.
+
+    At the same time, AM console provides an easy to use visual interface for managing scripts and applying them to authentication and authorization events.
+
+    ### IDM
 
     In IDM, the scripts can be managed directly in separate files and referenced from the configuration. The configuration can be itself managed directly in the file system.
 
-    #### Configuration File Syntax
+    ### IG
 
-    1. IDM
+    ### Configuration File Syntax in IDM and IG
+
+    * IDM
 
         ```json
         {
@@ -75,7 +149,7 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script might
         }
         ```
 
-    1. IG
+    * IG
 
         ```json
         {
@@ -88,6 +162,20 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script might
             }
         }
         ```
+
+* Languages
+
+    All three components support server-side scripting in Groovy.
+
+    For supporting server-side JavaScript, AM and IDM use [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino)—the scripting engine that has access to the Java environment provided by the products.
+
+    > At the time of this writing, the 6.5 version of AM use Rhino version 1.7R4 and IDM was using version 1.7.12_1. Both products use Groovy version 2.5.7.
+
+    AM allows for client-side scripts, which run in the browser environment and have to comply with it.
+
+    IDM does not support custom client-side JavaScript.
+
+    IG does not currently support JavaScript in any form.
 
 * Security
 
@@ -108,7 +196,7 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script might
 
 * Debugging
 
-## Summary for Server-Side Scripts
+## Summary Table for Server-Side Scripts
 
 | Script Feature | IDM | IG | AM |
 |-|-|-|-|
@@ -127,7 +215,7 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script might
 | HTTP Request | | | `org.forgerock.http.protocol`, Synchronous [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-http-client)|
 | Exported Scripts Location | | | `/path/to/forgeops/docker/6.5/amster/config/realms/root/Scripts` |
 
-## <a id="example"></a>An Example of Scripting in ForgeRock Components
+## <a id="example"></a>An Example of Scripting in ForgeRock Products
 
 [Back to the Top](#top)
 
@@ -143,37 +231,7 @@ This is just one possible scripting application in ForgeRock products, but it wi
 
 AM provides authentication and authorization services, and custom scripts can be used to augment the default functionality.
 
-### Managing Scripts in AM
-
-The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter shows how the scripts can be managed via REST and command line interfaces. These may represent the most efficient way to manage scripts in automated environments; for example, in production deployments.
-
-At the same time, AM console provides an easy to use visual interface for managing scripts and applying them to authentication and authorization events. For the example purposes, we will use AM console to extend an authentication procedure with a script.
-
-### Client-Side Scripts
-
-When used for authentication in the front channel, AM allows for creating client-side scripts that would be executed in the user agent.
-
-The use case for a client-side script is collecting information about the user agent's properties and its environment: [Geolocation](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/geolocation), IP, and whatever else that could be collected with a custom script running in a browser. Thus, the script needs to be written in JavaScript compatible with the browser.
-
-The data collected by a client-side script can be submitted to the server side and become available for the server components involved in the same authentication procedure.
-
-### Server-Side Scripts
-
-The decision making process on user identification and access management can be aided with the server-side scripts. The server-side scripts can be written in Groovy or JavaScript running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino).
-
-The server-side scripts can accept data from the client-side ones, but the way the data is sent and received depends on the type of the authentication flow.
-
-### Authentication Chains and Authentication Trees
-
-AM supports two types of authentication: with [Authentication Modules and Chains](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#about-authentication-modules-and-chains) and with [Authentication Nodes and Trees](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-about-authentication-trees).
-
-A scriptable authentication module can use a pair of client-side and server-side scripts. Data collected with the client-side script can be submitted to the server as a single input and become available to the server-side script as a well-known variable.
-
-A scriptable authentication node in a tree can run arbitrary JavaScript on the client-side and receive data back by using interactive features named [callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks), as described in [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript) in Authentication Node Development Guide.
-
-In the following examples we will implement both.
-
-### Scripting Authentication Chain Example
+### <a id="am-scripting-a-chain"></a>AM > Scripting Authentication Chain Example
 
 To outline basic principles of scripting authentication chains in AM, we offer an example of extending authentication with a pair of simple client-side and server-side scripts.
 
@@ -396,7 +454,7 @@ Sign in as an AM administrator, for example amadmin.
 
     > JavaScript `console.log` and Rhino's `print` are not implemented for server-side scripts. The client-side JavaScript can output logs into the browser's console as usual.
 
-### Scripting Authentication Tree Example
+### <a id="am-scripting-a-tree"></a>AM > Scripting Authentication Tree Example
 
 As authentication worries along, nodes in a tree may capture information and save it in a special object named SharedState that will be available for the next node in the tree.
 
@@ -521,6 +579,8 @@ As authentication worries along, nodes in a tree may capture information and sav
 
     7. Decide the outcome on whether or not the user can be found in the online resource, which represents some kind of "black list".
 
+        > The client IP could also be used in [Scripted a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition) as demonstrated for the default policy condition script included in AM installation.
+
     8. Proceed to the next node.
 
     Or, a JavaScript equivalent:
@@ -606,7 +666,7 @@ Scripts in IDM could be associated with its endpoints or events connected to man
 
 As the docs state, the custom scripts could be written in JavaScript or Groovy. In this writing, we will create both versions of an example script to run against the default environment defined in the `/path/to/idm/conf/script.json` file (under the IDM installation in the running container); for example, in `/opt/openidm/conf/script.json`. If a corresponding file is defined in the staging area, in `/path/to/forgeops/docker/7.0/idm/conf/script.json` in the described here example, this file will be copied to the container when it is deployed.
 
-### The Scripts' Location
+### <a id="idm-scripts-location"></a>IDM > The Scripts' Location
 
 The script content can be defined either inline in a configuration file (that is, a file under the `/path/to/idm/conf` directory), or in a separate script file. For the purposes of this example, we will use the latter option, as it provides a comfortable environment for writing multiline scripts and additional options for debugging.
 
@@ -684,7 +744,7 @@ You can change the minimum interval setting (in milliseconds) before you deploy 
 
 ***
 
-#### Evaluating Scripts
+#### <a id="idm-evaluating"></a>IDM > Evaluating Scripts
 
 You can try out your script by validating it, as described in the [IDM Docs](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-endpoint). In order to be able to access the `/script` endpoint you will need to authorize your client for making request to the IDM `/script` endpoint. In ForgeOps, you would need to provide an access token from `amadmin` user. The token will need to be associated with the `openid` scope.
 
@@ -778,7 +838,7 @@ curl -k -X POST \
 
 ***
 
-#### Debugging
+#### <a id="idm-debugging"></a>IDM > Debugging
 
 While working on a script file you may have an option to use a debugger. We will provide an example of the debugging process based on a popular IDE for developing in Java and Groovy, [IntelliJ IDEA](https://www.jetbrains.com/idea/). You can check out details on setting debugging environment in [IntelliJ's docs](https://www.jetbrains.com/help/idea/creating-and-editing-run-debug-configurations.html), but the general steps are outlined below:
 
@@ -887,7 +947,7 @@ When you change `router.json`, don't forget to build and deploy your sample, if 
 
 Some configuration options can be associated with scripts in the IDM Admin UI.
 
-To experience it first hand, you could, for example, sign in at `https://default.iam.example.com/admin`, navigate to CONFIGURE > MANAGED OBJECTS > USER, and select the Scripts tab. Here, you'll be provided with an a choice of modifying one of the existing scripts or creating a new one:
+To experience it first hand, you could, for example, sign in at `https://default.iam.example.com/admin`, navigate to CONFIGURE > MANAGED OBJECTS > USER, and select the Scripts tab. Here, you'll be provided with a choice of modifying one of the existing scripts or creating a new one:
 
 <img src="README_files/idm.admin.managed-object.user.script-manager.scripts.png" alt="IDM Admin, Configure Manged Object, User, Scripts" width="700">
 
@@ -1021,8 +1081,11 @@ A multiline script can be defined in a configuration file as an array of strings
 
 * Languages
 
-    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
+    * [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript). MDN web docs.
 
+    * [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). MDN web docs.
+
+    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
 
 * Management
 
@@ -1041,12 +1104,11 @@ A multiline script can be defined in a configuration file as an array of strings
 
 * Application and Environment
 
-    * [https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global). Development Guide.
+    * [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global). Development Guide.
 
     * [AM 6.5.2.3 Public API Javadoc](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html). OpenAM Server Only 6.5.2.3 Documentation.
 
         Describes available Java interfaces.
-
     * Authentication
 
         * Chains
@@ -1073,11 +1135,12 @@ A multiline script can be defined in a configuration file as an array of strings
 
             * [The Node Class](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-class) and [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action). Authentication Node Development Guide.
 
-    * Authorization
-        * Access Token Modification
-        * OIDC Claims
-        * Scripted Policy Condition
+        * [OpenID Connect 1.0 Claims API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-oidc). Development Guide.
 
+    * Authorization
+        * [Authorization API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-policy). Development Guide.
+        * Access Token Modification
+        * [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition). Authorization Guide.
 
 * Examples
 
@@ -1092,9 +1155,6 @@ A multiline script can be defined in a configuration file as an array of strings
         Instructions for setting up the Device Id (Match) module, the rest of the [Configuring Authentication Chains and Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#configure-authn-chains-modules) chapter, and this example can serve as a reference for setting up a custom authentication chain.
 
     * [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript).  Authentication Node Development Guide.
-
-
-The script will load an external library and make an HTTP request in order to get the client's IP information.
 
 ### <a id="references-idm"></a>IDM
 
@@ -1115,6 +1175,10 @@ The script will load an external library and make an HTTP request in order to ge
     * [FAQ: Scripts in IDM/OpenIDM](https://backstage.forgerock.com/knowledge/kb/article/a29088283). Knowledge Base.
 
 * Languages
+
+    * [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). MDN web docs.
+
+    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
 
 * Management
 
@@ -1179,6 +1243,8 @@ The script will load an external library and make an HTTP request in order to ge
         Usage, configuration, syntax, and environment.
 
 * Languages
+
+    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
 
 * Management
 
