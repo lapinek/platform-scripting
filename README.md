@@ -11,7 +11,7 @@ This writing aims at a quick introduction to scripting across the Platform—via
 
 * [Conclusion](#conclusion)
 * [Summary](#summary)
-* [An Example of Scripting in ForgeRock Components](#example)
+* [A Simple Example of Scripting in ForgeRock Components](#example)
     * [AM](#example-am)
     * [IDM](#example-idm)
     * [IG](#example-ig)
@@ -35,7 +35,7 @@ Scripts add flexibility to the ForgeRock Identity Platform. While a script might
 
 This section is a short overview of different scripting aspects in the three products.
 
-The [References](#references) section contains collection of links to the corresponding documentation and the links are organized in a similar way: by area of concern and by product.
+The [References](#references) section contains collection of links to the official scripting documentation. The links are organized by product and by area of concern.
 
 * ### <a id="summary-application-and-environment"></a>Application and Environment
 
@@ -105,17 +105,25 @@ The [References](#references) section contains collection of links to the corres
 
     * Accessing existing session data.
 
-    * Authentication scripts have access to authentication state in chains and shared and transient state in trees.
+    In addition:
 
-    * Authorization scripts have access to authorization state, which includes passed in data, and can set authorization response attributes.
+    * Authentication scripts in chains have access to authentication state, `authState`, indicating the outcome of the current authentication in either `SUCCESS` or `FAILED` value.
 
-    You can find details on APIs available to server-side scripts in AM in the docs, under [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts) and [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition).
+    * Authentication scripts in trees can set and access properties in the `sharedState` object and in `transientState` object; the latter may not persist through authentication and is designated for sensitive information like passwords.
 
-    In addition, scripts included in the default AM configuration, accessible in the administrative console under Realms > _Realm Name_ > Scripts, can serve as a great source of example scripting for all script types:
+    * Scripted policy decision scripts have access to the authorization state, passed in data, and username; they can set attributes in the authorization response.
+
+    * OAuth2 Access Token Modification script has access to the access token and to the scope associated with the authorization request.
+
+    * OIDC Claims Script has access to the server default and the requested claims information.
+
+    You can find details on APIs available to server-side scripts in AM in the docs, under [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts), [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition), and [Modifying Access Token Content Using Scripts](https://backstage.forgerock.com/docs/am/6.5/oauth2-guide/index.html#modifying-access-tokens-scripts).
+
+    Moreover, scripts included in the default AM configuration, and accessible in the administrative console under Realms > _Realm Name_ > Scripts, can serve as a great source of example scripting for the script types supported in AM:
 
     * Client-side Authentication
     * Server-side Authentication
-    * Decision node script for authentication trees
+    * Decision node script for authentication trees (The included example is minimal; see [example](#example-am-tree) included in this writing.)
     * OAuth2 Access Token Modification
     * OIDC Claims
     * Policy Condition
@@ -136,7 +144,7 @@ The [References](#references) section contains collection of links to the corres
 
     The router service provides the uniform interface to all IDM objects, as described in IDM's  Integrator's Guide under [Router Service Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-router).
 
-* ### <a id="summary-managing-scripts"></a>Managing Scripts
+* ### <a id="summary-managing-scripts"></a>Managing Scripts and Configuration
 
     ### AM
 
@@ -295,7 +303,7 @@ This is just one possible scripting application in ForgeRock products, but it wi
 
 AM provides authentication and authorization services, and custom scripts can be used to augment the default functionality.
 
-### <a id="am-scripting-a-chain"></a>AM > Scripting Authentication Chain Example
+### <a id="example-am-chain"></a>AM > Scripting Authentication Chain Example
 
 To outline basic principles of scripting authentication chains in AM, we offer an example of extending authentication with a pair of simple client-side and server-side scripts.
 
@@ -502,7 +510,7 @@ Sign in as an AM administrator, for example amadmin.
 
     > If you'd like to use custom identity attributes, their management is covered in [Setting Up Identity Stores](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#chap-maint-datastores).
 
-### <a id="am-scripting-a-tree"></a>AM > Scripting Authentication Tree Example
+### <a id="example-am-tree"></a>AM > Scripting Authentication Tree Example
 
 As authentication worries along, nodes in a tree may capture information and save it in a special object named SharedState that will be available for the next node in the tree.
 
@@ -764,7 +772,7 @@ You can change the minimum interval setting (in milliseconds) before you deploy 
 
 You can try out your script by validating it, as described in the [IDM Docs](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#script-endpoint). In order to be able to access the `/script` endpoint you will need to authorize your client for making request to the IDM `/script` endpoint. In ForgeOps, you would need to provide an access token from `amadmin` user. The token will need to be associated with the `openid` scope.
 
-For this example, we will describe how you can create `scripts` OAuth 2.0 client in [ForgeRock Access Management](https://www.forgerock.com/platform/access-management) (AM), which can be performed with the following cURL command:
+For this example, we will describe how you can create "scripts" OAuth 2.0 client in [ForgeRock Access Management](https://www.forgerock.com/platform/access-management) (AM), which can be performed with the following cURL command:
 
 ```bash
 curl -k 'https://default.iam.example.com/am/json/realms/root/realm-config/agents/OAuth2Client/scripts' \
@@ -1095,29 +1103,6 @@ A multiline script can be defined in a configuration file as an array of strings
 
         Customizing authentication trees and chains.
 
-* Languages
-
-    * [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript). MDN web docs.
-
-    * [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). MDN web docs.
-
-    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
-
-* Management
-
-    * [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts). Development Guide.
-        * Administrative Console (UI)
-        * REST API
-        * `ssoadm` Command (command line)
-
-* Security
-
-    * [Security](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#script-engine-security)
-
-* Debugging
-
-    * [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging). Setup and Maintenance Guide.
-
 * Application and Environment
 
     * [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global). Development Guide.
@@ -1151,12 +1136,46 @@ A multiline script can be defined in a configuration file as an array of strings
 
             * [The Node Class](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-class) and [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action). Authentication Node Development Guide.
 
-        * [OpenID Connect 1.0 Claims API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-oidc). Development Guide.
+            * [Storing Values in Shared Tree State](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-tree-state). Authentication Node Development Guide.
+
+            * [Storing Secret Values in Transient Tree State](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#store-values-in-transient-state). Authentication Node Development Guide.
+
+            * [Accessing an Identity's Profile](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-user-profile). Authentication Node Development Guide.
 
     * Authorization
+
         * [Authorization API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-policy). Development Guide.
-        * Access Token Modification
+
         * [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition). Authorization Guide.
+
+        * [Modifying Access Token Content Using Scripts](https://backstage.forgerock.com/docs/am/6.5/oauth2-guide/index.html#modifying-access-tokens-scripts). OAuth 2.0 Guide.
+
+    * Federation
+
+        * [OpenID Connect 1.0 Claims API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-oidc). Development Guide.
+
+* Management
+
+    * [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts). Development Guide.
+        * Administrative Console (UI)
+        * REST API
+        * `ssoadm` Command (command line)
+
+* Languages
+
+    * [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript). MDN web docs.
+
+    * [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). MDN web docs.
+
+    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
+
+* Security
+
+    * [Security](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#script-engine-security)
+
+* Debugging
+
+    * [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging). Setup and Maintenance Guide.
 
 * Examples
 
