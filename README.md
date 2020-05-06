@@ -27,13 +27,13 @@ There are certain similarities as well: the choice of scripting languages, abili
 
 The ability of scripts to communicate with external network resources is a powerful tool. The current security measures do not seem to apply restrictions to endpoints a script may access, which may represent an additional concern about the script's overall security if the administrative UI/API protections can be breached. However, because the same administrative privileges that allow manage scripts will likely allow to change other configuration, the network restriction policies may need to be implemented outside of the product configuration.
 
-Scripts add flexibility to the ForgeRock Identity Platform. While a script might not be performing at the same level as a native/standard implementation, the scripts can be used to substitute functionality that is not yet present in the current version of the software or is specific to a certain deployment.
+Scripts add flexibility to the ForgeRock Identity Platform. While a script might not be performing at the same level as a native/standard implementation, custom scripts can be used to substitute functionality that is not yet present in the software or is specific to a certain deployment.
 
 ## <a id="summary"></a>Summary
 
 [Back to the Top](#top)
 
-This section is a short overview of different scripting aspects in the three products.
+This section is a briefed overview of different scripting aspects in the three products.
 
 The [References](#references) section contains collection of links to the official scripting documentation. The links are organized by product and by area of concern.
 
@@ -140,21 +140,49 @@ The [References](#references) section contains collection of links to the offici
 
     ### IDM
 
+    IDM manages identities within and across identity stores. Seemingly, at any stage of this process scripts can be applied as a part of a security decision, managed object action, event handler, or validation policy, custom endpoint action, synchronization procedure, or connection to backend resource. The major applications could be categorized as the following:
+
+    * Managed Object
+
+        * Events (Triggers), such as onCreate, onUpdate, onDelete, etc.
+        * Custom Scripted Actions, performed in the context of the managed object.
+
+    * Synchronization Service
+
+        * Events—such as onCreate, onUpdate, onDelete, etc., or successful reconciliation—defined via Object-Mapping Objects.
+        * Correlation scripts, to determine unlinked target object.
+        * Filtering the source.
+        * Validating the source and the target.
+
+    * Scripted Policies, used for data validation in Managed Objects and Synchronization Service.
+
+    * Authentication, when security context is augmented with a script.
+
+    * Authorization, implemented with scripts and extendable with scripts.
+
+    * Scripted Connectors, to communicate with specific identity providers/resources.
+
+    * Custom Endpoints, providing arbitrary functionality over REST API.
+
+    * Activiti Workflows, referencing a Groovy script.
+
+    Links to documentation where these are covered in details could be found at the end of this writing, in [References > IDM > Application and Environment](#references-idm-application-and-environment).
+
     Scripts in IDM provide functionality to the [Managed Object Triggers](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#managed-object-triggers).
 
     The router service provides the uniform interface to all IDM objects, as described in IDM's  Integrator's Guide under [Router Service Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-router).
 
-* ### <a id="summary-managing-scripts"></a>Managing Scripts and Configuration
+* ### <a id="summary-managing-scripts"></a>Management and Configuration
 
     ### AM
 
-    The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter shows how the scripts can be managed via REST and command line interfaces. These may represent the most efficient way to manage scripts in automated environments; for example, in production deployments.
+    The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter shows how the scripts can be managed via REST and command line interfaces. These may represent the most efficient way to manage scripts in automated environments; for example, in production deployments. At the same time, AM console UI provides an easy to use visual interface for managing scripts and applying them to authentication and authorization events.
 
-    At the same time, AM console provides an easy to use visual interface for managing scripts and applying them to authentication and authorization events.
+    Managing scripts requires an administrative account; for example, the built in `amadmin`. The admin user credentials can be used directly in AM console and with the `ssoadmin` command in Terminal. To manage scripts via the REST, you'd need to provide an authentication header, `iPlanetDirectoryPro` is expected by default, populated with the SSO token of an administrative user.
 
     ### IDM
 
-    In IDM, the scripts can be managed directly in separate files and referenced from the configuration. The configuration can be itself managed directly in the file system.
+    In IDM, the scripts can be managed directly in separate files and referenced from the configuration. The configuration can be itself managed directly in the file system. Alternatively configuration files may be populated with the script content.
 
     ### IG
 
@@ -840,7 +868,7 @@ If the API call made from the script has been successful, you should see a JSON 
 {"status":"success","data":[{"id":"1","employee_name":"Tiger Nixon","employee_salary":"320800","employee_age":"61","profile_image":""}, . . . ,"code":200}
 ```
 
-To evaluate the Groovy script you will need to change the "type" and teh "file" values in the cURL request data:
+To evaluate the Groovy script you will need to change the "type" and the "file" values in the cURL request data:
 
 ```bash
 curl -k -X POST \
@@ -1038,7 +1066,7 @@ http.send(call)
 } as AsyncFunction)
 ```
 
-For making the dummy API call, the script is using an [HTTP Client](https://backstage.forgerock.com/docs/ig/6.5/apidocs/org/forgerock/http/Client.html) represented by the `http` object, one of the available objects described in [Scripts Configuration](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf) in IG docs. We use `thenOnResult` notification (and you can compliment it with `thenOnException`) because in this example we do not use the results of the dummy request, except printing them in the IG pod's logs for demonstration purposes. Once that Promise is complete, `thenAsync` calls the next filter or handler in the chain by returning `next.handle(context, request)`. You can find more details on using IG's non-blocking APIs in scripts in [this Knowledge Base article](https://backstage.forgerock.com/knowledge/kb/article/a77687377).
+For making the dummy API call, the script is using an [HTTP Client](https://backstage.forgerock.com/docs/ig/6.5/apidocs/org/forgerock/http/Client.html) represented by the `http` object, one of the available objects described in [Scripts Configuration](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf) in IG docs. We use `thenOnResult` notification (and you can compliment it with `thenOnException`) because in this example we do not use the results of the dummy request, except printing them in the IG pod's logs for demonstration purposes. Once that Promise is complete, `thenAsync` calls the next filter or handler in the chain by returning `next.handle(context, request)`. You can find more details on using IG's non-blocking APIs in scripts in [this ForgeRock Knowledge Base article](https://backstage.forgerock.com/knowledge/kb/article/a77687377).
 
 A multiline script can be defined in a configuration file as an array of strings. Then, an equivalent of the above script might look like the following:
 
@@ -1084,6 +1112,7 @@ A multiline script can be defined in a configuration file as an array of strings
 * [AM](#references-am)
 * [IDM](#references-idm)
 * [IG](#references-ig)
+* [Commons](#references-commons)
 
 ### <a id="references-am"></a>AM
 
@@ -1110,6 +1139,7 @@ A multiline script can be defined in a configuration file as an array of strings
     * [AM 6.5.2.3 Public API Javadoc](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html). OpenAM Server Only 6.5.2.3 Documentation.
 
         Describes available Java interfaces.
+
     * Authentication
 
         * Chains
@@ -1189,7 +1219,14 @@ A multiline script can be defined in a configuration file as an array of strings
 
         Instructions for setting up the Device Id (Match) module, the rest of the [Configuring Authentication Chains and Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#configure-authn-chains-modules) chapter, and this example can serve as a reference for setting up a custom authentication chain.
 
-    * [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript).  Authentication Node Development Guide.
+    * [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript). Authentication Node Development Guide.
+
+    * [How do I share values between scripted policies in AM/OpenAM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a94496637). ForgeRock Knowledge Base.
+
+* Performance
+
+    [Scripted decision nodes underperformance vs. native nodes](https://bugster.forgerock.org/jira/browse/OPENAM-16112). ForgeRock JIRA.
+
 
 ### <a id="references-idm"></a>IDM
 
@@ -1207,15 +1244,39 @@ A multiline script can be defined in a configuration file as an array of strings
 
     * [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#appendix-scripting). Integrator's Guide.
 
-    * [FAQ: Scripts in IDM/OpenIDM](https://backstage.forgerock.com/knowledge/kb/article/a29088283). Knowledge Base.
+    * [FAQ: Scripts in IDM/OpenIDM](https://backstage.forgerock.com/knowledge/kb/article/a29088283). ForgeRock Knowledge Base.
 
-* Languages
+* <a id="references-idm-application-and-environment"></a>Application and Environment
 
-    * [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). MDN web docs.
+    * [Managed Object Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#managed-object-configuration). Integrator's Guide.
 
-    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
+    * [Synchronization Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#sync-object-mapping). Integrator's Guide.
+
+    * [Extending the Authorization Mechanism](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#authorization-extending). Integrator's Guide.
+
+    * [Creating Custom Endpoints to Launch Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#custom-endpoints). Integrator's Guide.
+
+    * [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-scripting). Integrator's Guide.
+
+    * [Router Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-router). Integrator's Guide.
+
+    * [Configuring HTTP Clients](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#http-client-config). Integrator's Guide.
+
+    * [Accessing Data Objects By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#data-scripts). Integrator's Guide.
+
+    * [OpenICF Framework 1.5.6.0 Documentation](https://backstage.forgerock.com/docs/idm/6.5/apidocs/). OpenICF Framework 1.5.6.0 Documentation.
+
+    * [Writing Scripted Connectors With the Groovy Connector Toolkit](https://backstage.forgerock.com/docs/idm/6.5/connector-dev-guide/index.html#chap-groovy-connectors). Connector Developer's Guide.
+
+        Scripting with Groovy in the ForgeRock Open Connector Framework and ICF Connectors.
+
+    * [Defining Activiti Workflows](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#defining-activiti-workflows). Integrator's Guide.
+    * Script evaluation
+    * Custom OSGi bundles
 
 * Management
+
+    * [Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config). Integrator's Guide.
 
     * [Managing Authentication, Authorization and Role-Based Access Control](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#chap-auth). Integrator's Guide.
 
@@ -1223,47 +1284,23 @@ A multiline script can be defined in a configuration file as an array of strings
     * REST
     * File System
 
+* Languages
+
+    * [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). MDN web docs.
+
+    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
+
 * Security
 
     * No scripting-specific security
 
-* Environment
-
 * Debugging
-
-* Application and Environment
-
-    * [Configuring HTTP Clients](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#http-client-config). Integrator's Guide.
-
-    * [Accessing Data Objects By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#data-scripts). Integrator's Guide.
-
-    * [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-scripting). Integrator's Guide.
-
-    * [Router Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-router). Integrator's Guide.
-
-    * [OpenICF Framework 1.5.6.0 Documentation](https://backstage.forgerock.com/docs/idm/6.5/apidocs/).
-
-    * Mapping (sync.json)
-    * Event hooks (managed.json)
-
-        Managed Object Event Handlers
-
-    * Custom Endpoints/Actions
-    * Authentication / Authorization / Policy
-
-    * [Writing Scripted Connectors With the Groovy Connector Toolkit](https://backstage.forgerock.com/docs/idm/6.5/connector-dev-guide/index.html#chap-groovy-connectors). Connector Developer's Guide.
-
-        Scripting with Groovy in the ForgeRock Open Connector Framework and ICF Connectors.
-
-    * Workflow
-    * Script evaluation
-    * Custom OSGi bundles
 
 * Examples
 
-    * [How do I write to a file using JavaScript on a custom endpoint in IDM/OpenIDM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a88622670). Knowledge Base.
+    * [Creating a Custom Endpoint](https://backstage.forgerock.com/docs/idm/6.5/samples-guide/index.html#chap-custom-endpoint). Samples Guide.
 
-    *
+    * [How do I write to a file using JavaScript on a custom endpoint in IDM/OpenIDM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a88622670). ForgeRock Knowledge Base.
 
 ### <a id="references-ig"></a>IG
 
@@ -1317,3 +1354,6 @@ A multiline script can be defined in a configuration file as an array of strings
 
         Customize the list of OAuth 2.0 scopes required in an OAuth 2.0 access_token.
 
+### <a id="references-commons"></a>Commons
+
+* [ForgeRock Common APIs](https://commons.forgerock.org/bom/apidocs/index.html). ForgeRock Common APIs.
