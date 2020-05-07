@@ -37,7 +37,7 @@ The [References](#references) section contains collection of links to the offici
 
 * ### <a id="summary-application-and-environment"></a>Application and Environment
 
-    Scripting application is augmenting or extending native functionality of a product. The extension points could be events associated with an object or a procedure; for example, an update event on a managed object in IDM. Or, the scripts could represent an essential part of a procedure, necessary for its successful completion; for example, scripts employed in AM authentication flows.
+    Scripting application is augmenting or extending native functionality of a product. The extension points could be events associated with an object or a procedure; for example, an update event on a managed object in IDM. Or, the scripts could represent a procedure; for example, scripts performing authentication in AM.
 
     Scripts' environment could be described as access to methods and data. This may depend on the context the script is running in: the product and the particular procedure the script is extending. Even within the same product, the context may vary as the product components implement different functionality and expose different APIs.
 
@@ -67,11 +67,11 @@ The [References](#references) section contains collection of links to the offici
 
     AM may be used for authentication in the front channel. This can be assisted with custom client-side scripts written in JavaScript and executed in the user agent.
 
-    The use case for a client-side script is collecting information about the user agent's properties and its environment: [Geolocation](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/geolocation), IP, and whatever else that could be collected with a custom script running in a browser. Thus, the script needs to be written in JavaScript compatible with the browser, has access to the browser properties, and can make requests to external network resources _from the browser_. It could be used, for example, for detecting the client's IP.
+    One important use case for a client-side script is collecting user input and/or information about the user agent's properties and its environment: [Geolocation](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/geolocation), IP, and whatever else that could be collected with a custom script running in a browser. Thus, the script needs to be written in JavaScript compatible with the browser, has access to the browser properties, and can make requests to external network resources _from the browser_. It could be used, for example, for detecting the client's IP.
 
     The data collected by a client-side script can be submitted to the server side and become available for the server components involved in the same authentication procedure.
 
-    Scriptable access to the browser environment seems to be a unique feature of authentication procedures in AM, in comparison to the other script applications in the three products.
+    Scriptable access to the browser environment is a unique feature of authentication procedures in AM, in comparison to the other script applications in the three products.
 
     #### <a id="am-scripting-server-side"></a>AM > Server-Side Scripts
 
@@ -83,7 +83,7 @@ The [References](#references) section contains collection of links to the offici
 
     * [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-http-client) with the client object, httpClient, and the `org.forgerock.http.protocol` package.
 
-        From scripts, AM makes synchronous, blocking network requests with the HTTP client object that are blocking until the script returns or times out according to the Server-side Script Timeout setting, which could be in the AM console under Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_SERVER_SIDE > Secondary Configurations > EngineConfiguration.
+        From scripts, AM makes synchronous network requests with the HTTP client object. The requests are blocking until the script returns or times out. The latter is defined in the Server-side Script Timeout setting. The setting could be in the AM console under Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_SERVER_SIDE > Secondary Configurations > EngineConfiguration.
 
     * [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger) with the `logger` object methods.
 
