@@ -224,12 +224,10 @@ The [References](#references) section contains collection of links to the offici
     call.setMethod("GET");
 
     return http.send(call)
-    .then { response ->
+    .thenOnResult { response ->
         def result = response.entity.json;
 
         response.close();
-
-        return result;
     }
     .thenAsync({
         next.handle(context, request);
