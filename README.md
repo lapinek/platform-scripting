@@ -81,10 +81,6 @@ The [References](#references) section contains collection of links to the offici
 
     [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global) describes objects universally available for server-side scripts in AM. It also covers logging options, which is the only means of debugging server-side scripts in AM.
 
-    [OpenAM Server Only 6.5.2.3 Documentation](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html) describes the single default source of Java functionality available for the server-side scripts, although some features may only make sense in certain contexts.
-
-    > For example, the `org.forgerock.openam.auth.node.api.Action` class, representing [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action), is applicable only in the context of authentication nodes and trees, but it is not usable in authentication modules.
-
     All server-side scripts have access to the following functionality:
 
     * [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-http-client) with the client object, httpClient, and the `org.forgerock.http.protocol` package.
@@ -128,6 +124,12 @@ The [References](#references) section contains collection of links to the offici
     * OIDC Claims
     * Policy Condition
 
+    The server-side scripts can load available Java classes and packages. [OpenAM Server Only 6.5.2.3 Documentation](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html) describes the single default source of Java functionality available for the server-side scripts, although some features may only make sense in certain contexts.
+
+    > For example, the `org.forgerock.openam.auth.node.api.Action` class, representing [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action), is applicable only in the context of authentication nodes and trees, but it is not usable in authentication modules.
+    >
+    > Extending AM with custom Java development is available via plugins, modules, and nodes and is described in part in [Customizing Authorization](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#chap-authz-customization) and [Customizing Authentication](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#chap-authn-customization) chapters of the corresponding guides.
+
     #### <a id="am-trees-and-chains"></a>AM > Server-side Scripts in Authentication Chains and Authentication Trees
 
     The server-side authentication functionality can accept data collected by the client-side scripts, but the way the data is sent and received depends on the type of the authentication flow.
@@ -138,7 +140,7 @@ The [References](#references) section contains collection of links to the offici
 
     A scriptable authentication node in a tree can run arbitrary JavaScript on the client-side and receive data back by using interactive features named [callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks), as described in [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript) in Authentication Node Development Guide.
 
-    ### IDM
+    ### <a id="summary-application-and-environment-idm"></a> IDM
 
     IDM manages identities within and across identity stores. Seemingly, at any stage of this process scripts can be applied as a part of a security decision, managed object action, event handler, or validation policy, custom endpoint action, synchronization procedure, or connection to backend resource. The major applications could be categorized as the following:
 
@@ -174,11 +176,20 @@ The [References](#references) section contains collection of links to the offici
     >
     > Links to documentation where various aspects of scripts' application and environment are covered in details could be found at the end of this writing, in [References > IDM > Application and Environment](#references-idm-application-and-environment).
 
-    A script context will depend on the script's application. [Variables Available to Scripts](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#script-variables) and [Router Service Reference > Script Scope](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#filter-script-scope) provide detailed information on the context information available to scripts.
+    A script scope will depend on the script's application. [Variables Available to Scripts](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#script-variables) and [Router Service Reference > Script Scope](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#filter-script-scope) provide detailed information on the context information available to scripts in IDM.
 
-    In addition, in a script configuration, you can provide arbitrary arguments, defined as JSON under the "globals" namespace.
+    [Variables Available to All Groovy Scripts](https://backstage.forgerock.com/docs/idm/6.5/connector-dev-guide/index.html#groovy-script-variables) in the Connector Developer's Guide describe the scripted connectors scope.
 
-    The functionality available for scripts is accessible via the `openidm` object and described in [Integrator's Guide > Scripting Reference > Function Reference](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#function-ref).
+    In addition, in a script configuration, you can provide arbitrary arguments, defined as JSON (normally, under the "globals" namespace). Any bindings specified by a scripted connector author can also be made available to the script. Properties provided to the script engine (in `conf/script.json`, as described in [Integrator's Guide > Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config)) may also be available in scripts.
+
+    The functionality supported by the script engine in IDM is available to scripts via the `openidm` object and described in [Integrator's Guide > Scripting Reference > Function Reference](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#function-ref). Scripted connectors have access to the [ICF framework](https://backstage.forgerock.com/docs/idm/6.5/apidocs/) framework.
+
+    In addition, you can [use custom Java packages](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package) and [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts, and [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
+
+    ### <a id="summary-application-and-environment-ig"></a> IG
+
+
+
 
 * ### <a id="summary-managing-scripts"></a>Management and Configuration
 
@@ -1074,7 +1085,7 @@ http.send(call)
 } as AsyncFunction)
 ```
 
-For making the dummy API call, the script is using an [HTTP Client](https://backstage.forgerock.com/docs/ig/6.5/apidocs/org/forgerock/http/Client.html) represented by the `http` object, one of the available objects described in [Scripts Configuration](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf) in IG docs. We use `thenOnResult` notification (and you can compliment it with `thenOnException`) because in this example we do not use the results of the dummy request, except printing them in the IG pod's logs for demonstration purposes. Once that Promise is complete, `thenAsync` calls the next filter or handler in the chain by returning `next.handle(context, request)`. You can find more details on using IG's non-blocking APIs in scripts in [this ForgeRock Knowledge Base article](https://backstage.forgerock.com/knowledge/kb/article/a77687377).
+For making the dummy API call, the script is using an [HTTP Client](https://backstage.forgerock.com/docs/ig/6.5/apidocs/org/forgerock/http/Client.html) represented by the `http` object, one of the available objects described in [Scripts Configuration](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf) in IG docs. We use `thenOnResult` notification (and you can compliment it with `thenOnException`) because in this example we do not use the results of the dummy request, except printing them in the IG pod's logs for demonstration purposes. Once that Promise is complete, `thenAsync` calls the next filter or handler in the chain by returning `next.handle(context, request)`. You can find more details on using IG's non-blocking APIs in scripts in [this Knowledge Base article](https://backstage.forgerock.com/knowledge/kb/article/a77687377).
 
 A multiline script can be defined in a configuration file as an array of strings. Then, an equivalent of the above script might look like the following:
 
@@ -1229,7 +1240,7 @@ A multiline script can be defined in a configuration file as an array of strings
 
     * [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript). Authentication Node Development Guide.
 
-    * [How do I share values between scripted policies in AM/OpenAM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a94496637). ForgeRock Knowledge Base.
+    * [How do I share values between scripted policies in AM/OpenAM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a94496637). Knowledge Base.
 
 * Performance
 
@@ -1254,8 +1265,6 @@ A multiline script can be defined in a configuration file as an array of strings
 
     * [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#appendix-scripting). Integrator's Guide.
 
-    * [FAQ: Scripts in IDM/OpenIDM](https://backstage.forgerock.com/knowledge/kb/article/a29088283). ForgeRock Knowledge Base.
-
 * <a id="references-idm-application-and-environment"></a>Application and Environment
 
     * [Managed Object Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#managed-object-configuration). Integrator's Guide.
@@ -1265,6 +1274,8 @@ A multiline script can be defined in a configuration file as an array of strings
     * [Extending the Authorization Mechanism](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#authorization-extending). Integrator's Guide.
 
     * [Creating Custom Endpoints to Launch Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#custom-endpoints). Integrator's Guide.
+
+    * [Registering Custom Scripted Actions](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#custom-scripted-actions). Integrator's Guide.
 
     * [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-scripting). Integrator's Guide.
 
@@ -1281,8 +1292,8 @@ A multiline script can be defined in a configuration file as an array of strings
         Scripting with Groovy in the ForgeRock Open Connector Framework and ICF Connectors.
 
     * [Defining Activiti Workflows](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#defining-activiti-workflows). Integrator's Guide.
-    * Script evaluation
-    * Custom OSGi bundles
+
+    * [How do I invoke a jar file from a Groovy script in IDM/OpenIDM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a38809746). Knowledge Base.
 
 * Management
 
@@ -1310,7 +1321,7 @@ A multiline script can be defined in a configuration file as an array of strings
 
     * [Creating a Custom Endpoint](https://backstage.forgerock.com/docs/idm/6.5/samples-guide/index.html#chap-custom-endpoint). Samples Guide.
 
-    * [How do I write to a file using JavaScript on a custom endpoint in IDM/OpenIDM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a88622670). ForgeRock Knowledge Base.
+    * [How do I write to a file using JavaScript on a custom endpoint in IDM/OpenIDM (All versions)?](https://backstage.forgerock.com/knowledge/kb/article/a88622670). Knowledge Base.
 
 ### <a id="references-ig"></a>IG
 
