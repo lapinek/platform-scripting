@@ -1,7 +1,7 @@
 
 # <a id="top"></a>Dynamic Scripting in ForgeRock Platform
 
-Three of ForgeRock Identity Platform products, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with dynamically applied, context-specific scripts written in JavaScript and Groovy and evaluated during the run time.
+Three of ForgeRock Identity Platform products, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with dynamically applied, context-specific scripts written in JavaScript or Groovy and evaluated during the run time.
 
 Scripting is broadly used in the products and broadly covered across [ForgeRock Product Documentation](https://backstage.forgerock.com/docs/). There are many articles describing scripting environment and application, often in a context of particular task and supplied with examples. Other places in the documentation cover functionality that is not directly related to scripting, but can be employed by scripts.
 
@@ -23,17 +23,15 @@ This writing aims at a quick introduction to scripting across the Platform—via
 
 The scripting objectives and implementation are driven by the product's functionality and the environment it provides. Hence, the scripts' location, configuration, security, the data and methods a script can use, and the way the scripts are managed are specific to a product.
 
-There are certain similarities as well: the choice of scripting languages, ability to access the underlying Java functionality and the context data, logging methods, access to the request object, and ability to make back-channel HTTP requests—all converge into a similar experience at certain level. The script configuration and content for all three products could be represented as JSON and saved in the file system.
+There are certain similarities as well: the choice of scripting languages, ability to access the underlying Java functionality and the context data, logging methods, access to the request object, and ability to make back-channel HTTP requests—all converge into a similar experience at certain level.
 
-The ability of scripts to communicate with external network resources is a powerful tool. The current security measures do not seem to apply restrictions to endpoints a script may access, which may represent an additional concern about the script's overall security if the administrative UI/API protections can be breached. However, because the same administrative privileges that allow manage scripts will likely allow to change other configuration, the network restriction policies may need to be implemented outside of the product configuration.
-
-Scripts add flexibility to the ForgeRock Identity Platform. While a script might not be performing at the same level as a native/standard implementation, custom scripts can be used to substitute functionality that is not yet present in the software or is specific to a certain deployment.
+Scripts add flexibility to the ForgeRock Identity Platform. Custom scripts can be used to substitute functionality that is not yet present in the software or is specific to a certain deployment.
 
 ## <a id="summary"></a>Summary
 
 [Back to the Top](#top)
 
-This section is a briefed overview of different scripting aspects in the three products.
+This section is a non-exhaustive overview of different scripting aspects in the three products.
 
 The [References](#references) section contains collection of links to the official scripting documentation. The links are organized by product and by area of concern.
 
@@ -190,6 +188,55 @@ The [References](#references) section contains collection of links to the offici
 
 
 
+    As you could observe, the context of a server-side script largely depends on the functionality the script extends, although some global APIs are universally available within a product.
+
+    Some methods and data, provide same functionality but via different implementations. Consider, for example, making back-channel outbound HTTP call in all three products:
+
+    ```groovy
+    // AM
+
+    import groovy.json.JsonSlurper;
+
+    def request = new org.forgerock.http.protocol.Request();
+    request.setUri("https://jsonplaceholder.typicode.com/users/");
+    request.setMethod("GET");
+
+    def response = httpClient.send(request).get();
+    def result = new JsonSlurper().parseText(response.getEntity().toString());
+    ```
+
+    ```groovy
+    // IDM
+
+    import org.forgerock.openidm.action.*
+
+    def result = openidm.action("external/rest", "call", {
+        "url": "https://jsonplaceholder.typicode.com/users/",
+        "method": "GET"
+    });
+    ```
+
+    ```groovy
+    // IG
+
+    def call = new Request();
+    call.setUri("https://jsonplaceholder.typicode.com/users/");
+    call.setMethod("GET");
+
+    http.send(call)
+    .then { response ->
+        def result = response.entity.json;
+
+        response.close();
+
+        return result;
+    }
+    .thenAsync({
+        next.handle(context, request);
+    } as AsyncFunction)
+    ```
+
+    A notable difference in IG implementation here is that it allows for asynchronous operation.
 
 * ### <a id="summary-managing-scripts"></a>Management and Configuration
 
@@ -244,6 +291,8 @@ The [References](#references) section contains collection of links to the offici
     IDM does not support custom client-side JavaScript.
 
     IG does not currently support JavaScript in any form.
+
+    It is tempting to say that for server-side scripts, Groovy is a preferable choice as it better integrates with the underlying Java environment. However, when supported, JavaScript can reproduce the same functionality and may be simpler to deal with for those who are familiar with the language and its ecosystem, especially in IDM, which allows to [load CommonJS modules](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500).
 
 * ### <a id="summary-security"></a>Security
 
@@ -780,10 +829,6 @@ import org.forgerock.openidm.action.*
 // final params = params as Map
 
 def result = openidm.action("external/rest", "call", params)
-
-println result
-
-return result
 ```
 
 Both scripts expect `params` argument; we will provide it as a JSON at the time the script is called:
@@ -1335,24 +1380,6 @@ A multiline script can be defined in a configuration file as an array of strings
 
         Usage, configuration, syntax, and environment.
 
-* Languages
-
-    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
-
-* Management
-
-* Security
-
-* Environment
-
-    * [Scripts](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Scripts). Configuration Reference.
-
-    * [Identity Gateway 6.5.2 API](https://backstage.forgerock.com/docs/ig/6.5/apidocs/)
-
-        Java interfaces.
-
-* Debugging
-
 * Application
 
     * [ScriptableFilter](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#ScriptableFilter). Configuration Reference.
@@ -1371,9 +1398,27 @@ A multiline script can be defined in a configuration file as an array of strings
 
          Customize resolution and validation of OAuth 2.0 access tokens.
 
-    * `ScriptableResourceAccess` in [OAuth2ResourceServerFilter](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#OAuth2ResourceServerFilter). Configuration Reference.
+    * [OAuth2ResourceServerFilter > ScriptableResourceAccess](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#OAuth2ResourceServerFilter). Configuration Reference.
 
         Customize the list of OAuth 2.0 scopes required in an OAuth 2.0 access_token.
+
+* Management
+
+* Languages
+
+    * [Apache Groovy Documentation](https://www.groovy-lang.org/documentation.html). The Apache Groovy programming language.
+
+* Security
+
+* Environment
+
+    * [Scripts](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Scripts). Configuration Reference.
+
+    * [Identity Gateway 6.5.2 API](https://backstage.forgerock.com/docs/ig/6.5/apidocs/)
+
+        Java interfaces.
+
+* Debugging
 
 ### <a id="references-commons"></a>Commons
 
