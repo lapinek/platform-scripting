@@ -197,7 +197,7 @@ The [References](#references) section contains collection of links to the offici
 
     import groovy.json.JsonSlurper;
 
-    def request = new org.forgerock.http.protocol.Request();
+    def request = new Request();
     request.setUri("https://jsonplaceholder.typicode.com/users/");
     request.setMethod("GET");
 
@@ -223,7 +223,7 @@ The [References](#references) section contains collection of links to the offici
     call.setUri("https://jsonplaceholder.typicode.com/users/");
     call.setMethod("GET");
 
-    http.send(call)
+    return http.send(call)
     .then { response ->
         def result = response.entity.json;
 
