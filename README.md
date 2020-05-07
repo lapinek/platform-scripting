@@ -166,11 +166,19 @@ The [References](#references) section contains collection of links to the offici
 
     * Activiti Workflows, referencing a Groovy script.
 
-    Links to documentation where these are covered in details could be found at the end of this writing, in [References > IDM > Application and Environment](#references-idm-application-and-environment).
+    In addition:
 
-    Scripts in IDM provide functionality to the [Managed Object Triggers](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#managed-object-triggers).
+    * Router Service, provides the uniform interface to all IDM objects, and its conditions and event handlers can be scripted.
 
-    The router service provides the uniform interface to all IDM objects, as described in IDM's  Integrator's Guide under [Router Service Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#appendix-router).
+    > The events by which scripts can be invoked are also summarized in [Places to Trigger Scripts](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#script-places).
+    >
+    > Links to documentation where various aspects of scripts' application and environment are covered in details could be found at the end of this writing, in [References > IDM > Application and Environment](#references-idm-application-and-environment).
+
+    A script context will depend on the script's application. [Variables Available to Scripts](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#script-variables) and [Router Service Reference > Script Scope](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#filter-script-scope) provide detailed information on the context information available to scripts.
+
+    In addition, in a script configuration, you can provide arbitrary arguments, defined as JSON under the "globals" namespace.
+
+    The functionality available for scripts is accessible via the `openidm` object and described in [Integrator's Guide > Scripting Reference > Function Reference](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#function-ref).
 
 * ### <a id="summary-managing-scripts"></a>Management and Configuration
 
@@ -1233,6 +1241,8 @@ A multiline script can be defined in a configuration file as an array of strings
 [Back to References](#references)
 
 * Introduction
+
+    * [Scripts in IDM/OpenIDM](https://backstage.forgerock.com/knowledge/kb/book/b51015449). Knowledge Base.
 
     * [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting). Integrator's Guide.
 
