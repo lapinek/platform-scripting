@@ -18,6 +18,9 @@ This writing aims at a quick comparison of scripting environments in the three p
         * [Authentication Chain Example](#overview-am-chain)
         * [Authentication Tree Example](#overview-am-tree)
     * [IDM](#overview-idm)
+        * [OSGi Framework](#overview-idm-osgi)
+        * [ICF Connectors](#overview-idm-icf)
+        * [Workflow](#overview-idm-workflow)
     * [IG](#overview-ig)
 * [Summary](#summary)
 * [Conclusion](#conclusion)
@@ -493,7 +496,44 @@ In future versions of AM, there may already be predefined nodes to perform certa
 
 NOTES:
 
-*
+* IDM presents three distinct environments for scripting:
+    * [Core IDM functionality defined in the OSGi framework](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#chap-overview).
+    * [ForgeRock Open Connector Framework and ICF Connectors](https://backstage.forgerock.com/docs/idm/6.5/connector-dev-guide/index.html#chap-about).
+    * [Embedded workflow and business process engine based on Activiti and the Business Process Model and Notation (BPMN) 2.0 standard](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#chap-workflow).
+
+
+### <a id="overview-idm-osgi"></a>IDM > OSGi Framework
+
+NOTES:
+
+* The Script Engine supports [Groovy](https://www.groovy-lang.org/documentation.html) and JavaScript running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). The 6.5 version of IDM uses Groovy version 2.5.7 and Rhino version 1.7.12 (the latest release of Rhino at the time of writing).
+* Scripting application could be summarized into the following environments described in [Scripting Reference](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-scripting):
+    * Managed Objects:
+        * Events.
+        * Custom Scripted Actions.
+        * Validating data via Scripted Policies.
+    * Synchronization Service:
+        * Events defined via Object-Mapping objects.
+        * Correlation scripts.
+        * Filtering (the source).
+        * Validating (the source and the target).
+        * Validating data via Scripted Policies.
+    * Custom Endpoints, providing arbitrary functionality over REST API.
+    * Authentication, when security context is augmented with a script.
+    * Authorization, implemented with scripts and extendable with scripts.
+* [Router Service](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-router) provides the uniform interface to all IDM objects and additional scope to all scripts in the core IDM.
+* Scripts accept arbitrary param objects defined under "globals" namespace in the individual script configuration.
+* Scripts have access to custom "properties" defined in [Script Engine Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
+* An individual script configuration can specify a script "source" as a single line or a script "file" reference.
+* Scripts defined in separate files can be attached to a debugger.
+* Scripts can be evaluated via REST, which can be used to test them if all the necessary bindings can be provided.
+* In the OSGi Framework, access to managed, system, and configuration objects within the core IDM is abstracted via the `openidm` object. Custom Java functionality can be provided as an OSGi bundle under `path/to/idm/instance/bundle` directory or a regular JAR under `path/to/idm/instance/lib` directory.
+* Once available, you can check for available classes and use GroovyScriptLoader to [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746). You can also [use custom Java packages in scripts](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package).
+* You [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts with the fully compliant CommonJS module implementation.
+
+### <a id="overview-idm-icf"></a>IDM > ICF Connectors
+
+### <a id="overview-idm-workflow"></a>IDM > Workflow
 
 Basic information about scripting in IDM can be found in its Integrator's Guide, in the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter, and in other sections of IDM documentation referenced from there.
 
