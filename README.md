@@ -24,7 +24,7 @@ This writing aims at a quick comparison of scripting environments in the three p
 
 ## <a id="overview"></a>Overview
 
-[Back to the Top](#top)
+[Back to Contents](#contents)
 
 To highlight some differences in the scripting environments, we will use an example script to make an outbound HTTP call.
 
@@ -32,7 +32,7 @@ To highlight some differences in the scripting environments, we will use an exam
 
 ## <a id="overview-am"></a>Overview > AM
 
-[Back to the Top](#top)
+[Back to Contents](#contents)
 
 NOTES:
 
@@ -45,7 +45,10 @@ NOTES:
         * Access Token Modification
     * Federation, Server-side only
         * OIDC Claims Handling
-* Scripting environment is different for each category, but all of them share some common, globally provided functionality.
+* Client-side scripting environment is defined completely by the user agent and is not specific to ForgeRock.
+* Server-side scripting environment is different for each category in terms of automatically provided functionality. However:
+    * All of the categories share some common, globally provided objects and methods.
+    * All server-side scripts have access to the same underlying Java API.
 
 ### <a id="overview-am-client-side"></a>Overview > AM > Client-side Scripts
 
@@ -486,7 +489,11 @@ In future versions of AM, there may already be predefined nodes to perform certa
 
 ## <a id="overview-idm"></a>IDM
 
-[Back to the Top](#top)
+[Back to Contents](#contents)
+
+NOTES:
+
+*
 
 Basic information about scripting in IDM can be found in its Integrator's Guide, in the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter, and in other sections of IDM documentation referenced from there.
 
@@ -783,7 +790,7 @@ Now, if you trigger the event you associated your script with, for example updat
 
 ## <a id="overview-ig"></a>IG
 
-[Back to the Top](#top)
+[Back to Contents](#contents)
 
 Scripts in IG may be associated with one of the [scriptable object types](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf).
 
@@ -877,7 +884,7 @@ A multiline script can be defined in a configuration file as an array of strings
 
 ## <a id="conclusion"></a>Conclusion
 
-[Back to the Top](#top)
+[Back to Contents](#contents)
 
 The scripting objectives and implementation are driven by the product's functionality and the environment it provides. Hence, the scripts' location, configuration, security, the data and methods a script can use, and the way the scripts are managed are specific to a product.
 
@@ -887,7 +894,7 @@ Scripts add flexibility to the ForgeRock Identity Platform. Custom scripts can b
 
 ## <a id="summary"></a>Summary
 
-[Back to the Top](#top)
+[Back to Contents](#contents)
 
 This section is a non-exhaustive overview of different scripting aspects in the three products.
 
