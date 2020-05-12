@@ -45,6 +45,7 @@ NOTES:
         * Access Token Modification
     * Federation, Server-side only
         * OIDC Claims Handling
+* Scripting environment is different for each category, but all of them share some common, globally provided functionality.
 
 ### <a id="overview-am-client-side"></a>Overview > AM > Client-side Scripts
 
@@ -69,7 +70,7 @@ NOTES:
 * [Scripting Security](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#script-engine-security) checks directly-called Java classes against a configurable blacklist and whitelist, and, optionally, against the JVM SecurityManager.
 * Other, application-specific APIs are available to server-side scripts that are specific to the extended functionality.
 * HTTP requests can be made with the `httpClient` object. The requests are synchronous and blocking until resolved.
-* In server-side _JavaScript_ you need to use the full path to a Java class or method. A method referenced with the full path can be assigned to a variable in server-side JavaScript.
+* In server-side _JavaScript_ you need to use the full path to a Java class or a  static method. An instance or a static method can be assigned to a JavaScript variable.
 
 The decision making process on user identification and access management can be aided with the server-side scripts.
 
@@ -118,7 +119,7 @@ Authentication  CoreSystem  IdRepo  scripts.AUTHENTICATION_TREE_DECISION_NODE.fe
 ```bash
 $ tail -f scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
 scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc:04/26/2020 07:34:02:654 PM GMT: Thread[ScriptEvaluator-5,5,main]: TransactionId[88093018-65c0-4987-b7af-ef1429ac1c04-46398]
-ERROR: Helpful error description.
+ERROR: helpful info.
 ```
 
 If an error is not handled within the script itself, it may be reported in the Authentication log. For example, it you try to employ a Java package that is not whitelisted in the scripting engine settings, the "Access to Java class . . . is prohibited." error will appear in the Authentication file.
@@ -217,7 +218,7 @@ var ip = JSON.parse(clientScriptOutputData).ip; // 2
 failure = idRepository.getAttribute(username, 'postalAddress').toArray()[0].indexOf(ip.postal) === -1 // 3
 
 var request = new org.forgerock.http.protocol.Request(); // 4
-request.setUri("https://jsonplaceholder.typicode.com/users/");
+request.setUri("https://jsonplaceholder.typicode.com/users");
 request.setMethod("GET");
 
 var response = httpClient.send(request).get(); // 5
@@ -416,7 +417,7 @@ def ip = jsonSlurper.parseText(sharedState.get("clientScriptOutputData")).ip; //
 failure = id.getAttribute("postalAddress").toArray()[0].indexOf(ip.postal) == -1; // 7
 
 def request = new Request(); // 8
-request.setUri("https://jsonplaceholder.typicode.com/users/");
+request.setUri("https://jsonplaceholder.typicode.com/users");
 request.setMethod("GET");
 
 def response = httpClient.send(request).get(); // 9
@@ -451,7 +452,7 @@ if (failure) { // 11
 A JavaScript equivalent of the above script might look like the following:
 
 ```javascript
-var goTo = org.forgerock.openam.auth.node.api.Action.goTo;
+var goTo = org.forgerock.openam.auth.node.api.Action.goTo; // Assign a static method to a variable.
 var getIdentity = com.sun.identity.idm.IdUtils.getIdentity;
 
 var failure = false;
@@ -461,7 +462,7 @@ var ip = JSON.parse(sharedState.get("clientScriptOutputData")).ip;
 failure = id.getAttribute("postalAddress").toArray()[0].indexOf(ip.postal) === -1;
 
 var request = new org.forgerock.http.protocol.Request();
-request.setUri("https://jsonplaceholder.typicode.com/users/");
+request.setUri("https://jsonplaceholder.typicode.com/users");
 request.setMethod("GET");
 
 var response = httpClient.send(request).get();
@@ -1017,7 +1018,7 @@ The [References](#references) section contains collection of links to the offici
     import groovy.json.JsonSlurper;
 
     def request = new Request();
-    request.setUri("https://jsonplaceholder.typicode.com/users/");
+    request.setUri("https://jsonplaceholder.typicode.com/users");
     request.setMethod("GET");
 
     def response = httpClient.send(request).get();
@@ -1030,7 +1031,7 @@ The [References](#references) section contains collection of links to the offici
     import org.forgerock.openidm.action.*
 
     def result = openidm.action("external/rest", "call", {
-        "url": "https://jsonplaceholder.typicode.com/users/",
+        "url": "https://jsonplaceholder.typicode.com/users",
         "method": "GET"
     });
     ```
@@ -1039,7 +1040,7 @@ The [References](#references) section contains collection of links to the offici
     // IG
 
     def call = new Request();
-    call.setUri("https://jsonplaceholder.typicode.com/users/");
+    call.setUri("https://jsonplaceholder.typicode.com/users");
     call.setMethod("GET");
 
     return http.send(call)
