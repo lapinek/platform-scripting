@@ -1,16 +1,22 @@
 
-# <a id="top"></a>Particularities of Scripting Environment in ForgeRock Products
+# <a id="top"></a>Particularities of Scripting Environments in ForgeRock Products
 
 Three of ForgeRock Identity Platform products, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with scripts written in JavaScript or Groovy and evaluated during the run time.
 
 Scripting is broadly used in the products and broadly covered across [ForgeRock Product Documentation](https://backstage.forgerock.com/docs/). There are many articles describing scripting environment and application, often in a context of particular task and supplied with examples.
 
-This writing aims at a quick comparison of scripting environments in the three products. The [References](#references) section will contain a comprehensive set of relevant links to the official docs, but some will also be provided inline.
+This writing aims at a quick comparison of scripting environments in the three products and highlighting some important details. The [References](#references) section will contain a comprehensive set of relevant links to the official docs, but some will also be provided inline.
 
-## Contents
+## <a id="contents"></a>Contents
 
 * [Overview](#overview)
     * [AM](#overview-am)
+        * [Client-side](#overview-am-client-side)
+        * [Server-side](#overview-am-server-side)
+        * [Debugging](#overview-am-debugging)
+        * [Managing](#overview-am-managing)
+        * [Authentication Chain Example](#overview-am-chain)
+        * [Authentication Tree Example](#overview-am-tree)
     * [IDM](#overview-idm)
     * [IG](#overview-ig)
 * [Summary](#summary)
@@ -28,7 +34,21 @@ To highlight some differences in the scripting environments, we will use an exam
 
 [Back to the Top](#top)
 
+Notes:
+
+* Scripting application in AM could be summarized into the following categories:
+    * Authentication, Client-side and Server-side
+        * Modules and Chains
+        * Nodes and Trees
+    * Authorization, Server-side only
+        * Scripting Policy Condition
+        * Access Token Modification
+    * Federation, Server-side only
+        * OIDC Claims Handling
+
 ### <a id="overview-am-client-side"></a>Overview > AM > Client-side Scripts
+
+[Back to Contents](#contents)
 
 Notes:
 
@@ -39,6 +59,8 @@ In AM, authentication in the front channel can be assisted with custom client-si
 > An important use case for a client-side script could be collecting user input and/or information about the user agent: [Geolocation](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/geolocation), IP, the navigator properties, and so on.
 
 ### <a id="overview-am-server-side"></a>Overview > AM > Server-side Scripts
+
+[Back to Contents](#contents)
 
 Notes:
 
@@ -61,23 +83,86 @@ The ability to run Java in the server-side scripts is limited by configurable bl
 
 ### <a id="overview-am-debugging"></a>Overview > AM > Debugging Scripts
 
+[Back to Contents](#contents)
+
 Notes:
 
 * Server-side scripts in AM cannot be attached to a debugger.
 * The global scripting API allows for [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
+* By default, debug logs are saved in multiple files.
 
-### <a id="overview-am-managing"></a>Overview > AM > Managing Scripts
+The location of the log files can be found in the administrative console under CONFIGURE > SERVER DEFAULTS > General > Debugging.
+
+[Debug Logging By Service](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#log-debug-selective-capture) allows for setting a _level_ of debug logging to capture in the log files for the scripting service and for some individual scripts. Alternatively, during development, you could use the `logger.error` method, for the `error` level logs are always saved.
+
+Logs for scripts of the `Decision node script for authentication trees` type are saved individually when a script associated with a `Scripted Decision Node` outputs logs (at the allowed level). The file name is of the following pattern:
+
+scripts.AUTHENTICATION_TREE_DECISION_NODE._script-id_
+
+The _script-id_ part corresponds to the Realms > _Realm Name_ > Scripts > _script-id_ on the script details page in AM console. For example:
+
+<img alt="Script ID in AM Console" src="README_files/am.scripts.script-id.png" width="1024" />
+
+This is also how these scripts appear in the Debug instances input on the Debug Logging By Service page. For example:
+
+<img alt="Script ID on the Debug.jsp page" src="README_files/am.debug.debug-instances.script-id.png" width="1024" />
+
+In the debug directory, `path/to/am/instance/debug` by default, you can `tail -f` the log files during the development. For example:
+
+```bash
+$ cd ~/openam/am/debug$
+$ ls
+Authentication  CoreSystem  IdRepo  scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
+```
+
+```bash
+$ tail -f scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
+scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc:04/26/2020 07:34:02:654 PM GMT: Thread[ScriptEvaluator-5,5,main]: TransactionId[88093018-65c0-4987-b7af-ef1429ac1c04-46398]
+ERROR: Helpful error description.
+```
+
+If an error is not handled within the script itself, it may be reported in the Authentication log. For example, it you try to employ a Java package that is not whitelisted in the scripting engine settings, the "Access to Java class . . . is prohibited." error will appear in the Authentication file.
+
+
+> Server-side JavaScript `console.log()` and Rhino's `print()` are not supported and neither is `println()` in Groovy. You can use the `logger` object methods to output in Standard Output, though.
+>
+>The client-side JavaScript can output logs into the browser's console as usual.
+
+### <a id="overview-am-managing"></a>Overview > AM > Managing
+
+[Back to Contents](#contents)
 
 Notes:
 
+* Scripts management requires administrative rights.
 * Scripts can be uploaded but are stored as AM configuration data, not as files.
-* Scripts can be managed through the AM console with the provided in UI text editor.
+* Scripts can be designed through the AM console with the provided in UI text editor.
+* Scripts included in AM can serve as examples.
+
+The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter shows how the scripts can be managed via REST and command line interfaces. These two approaches may represent the most efficient way to manage scripts in automated environments; for example, in production deployments. At the same time, AM console UI provides an easy to use visual interface for creating and updating scripts and applying them to authentication, authorization, and [OpenID Connect](https://openid.net/connect/) procedures.
+
+Managing scripts requires an administrative account; for example, the built in `amadmin`. The admin user credentials can be used directly in AM console and with the `ssoadmin` command. To manage scripts via the REST, you'd need to provide an authentication header, `iPlanetDirectoryPro` is expected by default, populated with the SSO token of an administrative user.
+
+Scripts included in the default AM configuration can serve as a great source of example scripting for the script types supported in AM:
+
+* Client-side Authentication
+* Server-side Authentication
+* Decision node script for authentication trees (see [example](#overview-am-tree) in this writing)
+* OAuth2 Access Token Modification
+* OIDC Claims
+* Policy Condition
+
+The scripts can be found in the administrative console under Realms > _Realm Name_ > Scripts.
+
+Additional examples can be found in this writing, the official docs, and in community maintained projects.
 
 ### <a id="overview-am-chain"></a>Overview > AM > Authentication Chain Example
 
+[Back to Contents](#contents)
+
 Notes:
 
-* Custom scripts can be employed in the [Scripted Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripted-module-conf-hints). The module can take a pair of scripts of two types:
+* Custom scripts can be employed in the [Scripted Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripted-module-conf-hints). The module can take a pair of scripts of the following types:
 
 * `Client-side Authentication` (optional):
 
@@ -121,13 +206,13 @@ Legend:
 4. When the HTTP call is complete, submit the form.
 5. If the HTTP request takes more time than the specified timeout, auto submit the form.
 
-Notes:
+Specific for Scripted Authentication Module points of consideration:
 
 * The form is self-submitting.
 * The input for the client-side data can be referenced via the `output` object.
 * The form can be submitted with the automatically provided `submit()` function.
 
-> If you'd like to inspect the page content, you can further delay submission of the form or stop JavaScript execution with the good old alert.
+> If you'd like to inspect the page content, you can further delay submission of the form or stop JavaScript execution with the good old `alert()`.
 
 The corresponding server-side script, used in the same authentication module, can [Access Client-Side Script Output Data](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-authn-client-data) via a String object named `clientScriptOutputData`.
 
@@ -185,6 +270,8 @@ Legend:
 > The client IP information could be used in [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition)—as demonstrated in the `Scripted Policy Condition` script included in the default AM configuration.
 
 ### <a id="overview-am-tree"></a>Overview > AM > Authentication Tree Example
+
+[Back to Contents](#contents)
 
 Notes:
 
@@ -267,12 +354,6 @@ Legend:
 1. Import the API that allows for using the Action Interface and executing callbacks.
 2. The client-side portion can be defined directly in the body of `Decision node script for authentication trees` script. Provide a multiline definition of the client-side script to be executed in the user's browser.
 
-    Client-side Script Notes:
-
-    * The form is NOT self-submitting.
-    * The input for the client-side data needs to be referenced directly.
-    * There is no automatically provided `submit()` function.
-
     ```javascript
     var script = document.createElement('script'); // A
 
@@ -298,16 +379,18 @@ Legend:
     Client-side Script Legend:
 
     * A. Create a script element and add to DOM for loading an external library.
-
     * B. When the library is loaded, make a request to an external source to obtain the client's IP information.
-
     * C. Save the information, received as a JSON object, as a string in an input in the automatically rendered form.
-
     * D. When the HTTP call is complete, submit the form.
-
     * E. If the HTTP request takes more time than the specified timeout, auto submit the form.
 
-    > If you'd like to inspect the page content, you can further delay submission of the form or stop JavaScript execution with the good old alert.
+    Specific for Scripted Decision Node points of considerations:
+
+    * The form is NOT self-submitting.
+    * The input for the client-side data needs to be referenced directly.
+    * There is no automatically provided `submit()` function.
+
+    > If you'd like to inspect the page content, you can further delay submission of the form or stop JavaScript execution with `alert()`.
 
 3. Check if any callbacks have been already requested by the node; if not, specify the two for inserting a script in the user's browser and receiving a submitted form value from the client side. The callbacks will be sent to the user's browser.
 
@@ -826,41 +909,11 @@ The [References](#references) section contains collection of links to the offici
 
     ### <a id="summary-application-and-environment-am"></a> AM
 
-    Scripting application in AM could be summarized into the following categories:
-
-    * Authentication
-
-        * Modules and Chains
-            * Client-side
-            * Server-side
-        * Trees
-            * Client-side
-            * Server-side
-
-    * Authorization
-
-        * Scripting Policy Condition
-        * Access Token Modification
-
-    * Federation
-
-        * OIDC Claims Handling
-
     #### <a id="am-scripting-client-side"></a>AM > Client-Side Scripts
-
-    AM may be used for authentication in the front channel. This can be assisted with custom client-side scripts written in JavaScript and executed in the user agent.
-
-    One important use case for a client-side script is collecting user input and/or information about the user agent's properties and its environment: [Geolocation](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/geolocation), IP, and whatever else that could be collected with a custom script running in a browser. Thus, the script needs to be written in JavaScript compatible with the browser, has access to the browser properties, and can make requests to external network resources _from the browser_. It could be used, for example, for detecting the client's IP.
-
-    The data collected by a client-side script can be submitted to the server side and become available for the server components involved in the same authentication procedure.
 
     Scriptable access to the browser environment is a unique feature of authentication procedures in AM, in comparison to the other script applications in the three products.
 
     #### <a id="am-scripting-server-side"></a>AM > Server-Side Scripts
-
-    The decision making process on user identification and access management can be aided with the server-side scripts. The server-side scripts can be written in Groovy or JavaScript running on Rhino.
-
-    [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global) describes objects universally available for server-side scripts in AM. It also covers logging options, which is the only means of debugging server-side scripts in AM.
 
     All server-side scripts have access to the following functionality:
 
@@ -896,14 +949,6 @@ The [References](#references) section contains collection of links to the offici
 
     You can find details on APIs available to server-side scripts in AM in the docs, under [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts), [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition), and [Modifying Access Token Content Using Scripts](https://backstage.forgerock.com/docs/am/6.5/oauth2-guide/index.html#modifying-access-tokens-scripts).
 
-    Moreover, scripts included in the default AM configuration, and accessible in the administrative console under Realms > _Realm Name_ > Scripts, can serve as a great source of example scripting for the script types supported in AM:
-
-    * Client-side Authentication
-    * Server-side Authentication
-    * Decision node script for authentication trees (The included example is minimal; see [example](#example-am-tree) included in this writing.)
-    * OAuth2 Access Token Modification
-    * OIDC Claims
-    * Policy Condition
 
     The server-side scripts can load available Java classes and packages. [OpenAM Server Only 6.5.2.3 Documentation](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html) describes the single default source of Java functionality available for the server-side scripts, although some features may only make sense in certain contexts.
 
@@ -1023,12 +1068,6 @@ The [References](#references) section contains collection of links to the offici
 
 * ### <a id="summary-managing-scripts"></a>Management and Configuration
 
-    ### AM
-
-    The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter shows how the scripts can be managed via REST and command line interfaces. These may represent the most efficient way to manage scripts in automated environments; for example, in production deployments. At the same time, AM console UI provides an easy to use visual interface for managing scripts and applying them to authentication and authorization events.
-
-    Managing scripts requires an administrative account; for example, the built in `amadmin`. The admin user credentials can be used directly in AM console and with the `ssoadmin` command in Terminal. To manage scripts via the REST, you'd need to provide an authentication header, `iPlanetDirectoryPro` is expected by default, populated with the SSO token of an administrative user.
-
     ### IDM
 
     In IDM, the scripts can be managed directly in separate files and referenced from the configuration. The configuration can be itself managed directly in the file system. Alternatively configuration files may be populated with the script content.
@@ -1121,7 +1160,7 @@ The [References](#references) section contains collection of links to the offici
 
     <img alt="Script ID in AM Console" src="README_files/am.scripts.script-id.png" width="1024" />
 
-   <img alt="Script ID on the Debug.jsp page" src="README_files/am.debug.debug-instances.script-id.png" width="1024" />
+    <img alt="Script ID on the Debug.jsp page" src="README_files/am.debug.debug-instances.script-id.png" width="1024" />
 
     When a script associated with the Scripted Decision node outputs logs (at the allowed level set with `Debug.jsp`), the script specific log file is created under `your-am-instance-debugging-directory`. For example:
 
