@@ -34,7 +34,7 @@ To highlight some differences in the scripting environments, we will use an exam
 
 [Back to the Top](#top)
 
-Notes:
+NOTES:
 
 * Scripting application in AM could be summarized into the following categories:
     * Authentication, Client-side and Server-side
@@ -50,7 +50,7 @@ Notes:
 
 [Back to Contents](#contents)
 
-Notes:
+NOTES:
 
 * Client-side scripts need to be written in [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript) and be compatible with the users' _browser_.
 
@@ -62,7 +62,7 @@ In AM, authentication in the front channel can be assisted with custom client-si
 
 [Back to Contents](#contents)
 
-Notes:
+NOTES:
 
 * Server-side scripts in AM can be written in [Groovy](https://www.groovy-lang.org/documentation.html) or JavaScript running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). The 6.5 version of AM uses Groovy version 2.5.7 and Rhino version 1.7R4.
 * The server-side scripts have global access to [AM 6.5.2.3 Public API](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html) and [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global), the latter providing HTTP services and debug logging methods.
@@ -85,11 +85,11 @@ The ability to run Java in the server-side scripts is limited by configurable bl
 
 [Back to Contents](#contents)
 
-Notes:
+NOTES:
 
 * Server-side scripts in AM cannot be attached to a debugger.
 * The global scripting API allows for [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
-* By default, debug logs are saved in multiple files.
+* By default, debug logs are saved in (separate) files.
 
 The location of the log files can be found in the administrative console under CONFIGURE > SERVER DEFAULTS > General > Debugging.
 
@@ -132,7 +132,7 @@ If an error is not handled within the script itself, it may be reported in the A
 
 [Back to Contents](#contents)
 
-Notes:
+NOTES:
 
 * Scripts management requires administrative rights.
 * Scripts can be uploaded but are stored as AM configuration data, not as files.
@@ -160,7 +160,7 @@ Additional examples can be found in this writing, the official docs, and in comm
 
 [Back to Contents](#contents)
 
-Notes:
+NOTES:
 
 * Custom scripts can be employed in the [Scripted Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripted-module-conf-hints). The module can take a pair of scripts of the following types:
 
@@ -273,7 +273,7 @@ Legend:
 
 [Back to Contents](#contents)
 
-Notes:
+NOTES:
 
 * Custom scripts of the `Decision node script for authentication trees` type can be used in a [Scripted Decision Node](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#auth-node-scripted-decision).
 * `outcome` of a Scripted Decision Node could be populated with any string. The tree layout determines the path a particular outcome takes the authentication flow to.
@@ -1021,7 +1021,7 @@ The [References](#references) section contains collection of links to the offici
     Some methods and data, provide same functionality but via different implementations. Consider, for example, making back-channel outbound HTTP call in all three products:
 
     ```groovy
-    // 1M
+    // AM
 
     import groovy.json.JsonSlurper;
 
