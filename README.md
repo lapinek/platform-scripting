@@ -141,20 +141,11 @@ NOTES:
 
 The [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter shows how the scripts can be managed via REST and command line interfaces. These two approaches may represent the most efficient way to manage scripts in automated environments; for example, in production deployments. At the same time, AM console UI provides an easy to use visual interface for creating and updating scripts and applying them to authentication, authorization, and [OpenID Connect](https://openid.net/connect/) procedures.
 
-Managing scripts requires an administrative account; for example, the built in `amadmin`. The admin user credentials can be used directly in AM console and with the `ssoadmin` command. To manage scripts via the REST, you'd need to provide an authentication header, `iPlanetDirectoryPro` is expected by default, populated with the SSO token of an administrative user.
+Managing scripts requires an administrative account; for example, the built in `amadmin` login. The admin user credentials can be used directly in AM console and with the `ssoadmin` command. To manage scripts via the REST, you'd need to provide an authentication header, `iPlanetDirectoryPro` is expected by default, populated with the SSO token of an administrative user.
 
-Scripts included in the default AM configuration can serve as a great source of example scripting for the script types supported in AM:
+Behavior of script type can be be adjusted in AM console at Configure > Global Services > Scripting > Secondary Configurations > _Server-Side Script Type_.
 
-* Client-side Authentication
-* Server-side Authentication
-* Decision node script for authentication trees (see [example](#overview-am-tree) in this writing)
-* OAuth2 Access Token Modification
-* OIDC Claims
-* Policy Condition
-
-The scripts can be found in the administrative console under Realms > _Realm Name_ > Scripts.
-
-Additional examples can be found in this writing, the official docs, and in community maintained projects.
+Scripts included in the default AM configuration can serve as a great source of example scripting for the script types supported in AM. The Decision node script for authentication trees example script is very basic; for this one, see the [example](#overview-am-tree) provided in this writing. The default scripts can be found in the AM console under Realms > _Realm Name_ > Scripts.
 
 ### <a id="overview-am-chain"></a>Overview > AM > Authentication Chain Example
 
