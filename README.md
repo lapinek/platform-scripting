@@ -527,8 +527,11 @@ NOTES:
 * An individual script configuration can specify a script "source" as a single line or a script "file" reference.
 * Scripts defined in separate files can be attached to a debugger.
 * Scripts can be evaluated via REST, which can be used to test them if all the necessary bindings can be provided.
-* Access to managed, system, and configuration objects within the core IDM is abstracted via the `openidm` object. Custom Java functionality can be provided as a custom OSGi bundle under the `path/to/idm/instance/bundle` directory, or as a regular JAR file under `path/to/idm/instance/lib` directory.
-* Once available, you can [use custom Java packages in scripts](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package). You can check for available classes and JAR files and use GroovyScriptLoader to [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
+* Access to managed, system, and configuration objects within the core IDM is abstracted via the `openidm` object.
+* Custom Java functionality:
+    * Can be provided as a custom OSGi bundle under the `path/to/idm/instance/bundle` directory, or as a regular JAR file under `path/to/idm/instance/lib` directory.
+    * Once available, you can [use custom Java packages in scripts](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package), both JavaScript and Groovy.
+    * You can check for available classes and JAR files and use GroovyScriptLoader to [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
 * You can [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts using the fully compliant CommonJS module implementation.
 
 ### <a id="overview-idm-icf"></a>IDM > ICF Connectors
