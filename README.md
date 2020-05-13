@@ -500,53 +500,62 @@ NOTES:
     * [Core IDM functionality defined in the OSGi framework](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#chap-overview).
     * [ForgeRock Open Connector Framework and ICF Connectors](https://backstage.forgerock.com/docs/idm/6.5/connector-dev-guide/index.html#chap-about).
     * [Embedded workflow and business process engine based on Activiti and the Business Process Model and Notation (BPMN) 2.0 standard](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#chap-workflow).
+* OSGi Framework
+    * Languages:
+        * The Script Engine supports [Groovy](https://www.groovy-lang.org/documentation.html) and JavaScript running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). The 6.5 version of IDM uses Groovy version 2.5.7 and Rhino version 1.7.12 (the latest release of Rhino at the time of writing).
+    * Scopes:
+        * [Router Service](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-router) provides the uniform interface to all IDM objects and global [Script Scope](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#filter-script-scope) in the _core_ IDM.
+        * Scripting application could be summarized into the following environments, which add additional specific scopes, described in [Scripting Reference](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-scripting):
+            * Managed Objects:
+                * Events.
+                * Custom Scripted Actions.
+                * Validating data via Scripted Policies.
+            * Synchronization Service:
+                * Events defined via Object-Mapping objects.
+                * Correlation scripts.
+                * Filtering (the source).
+                * Validating (the source and the target).
+                * Validating data via Scripted Policies.
+            * Custom Endpoints, providing arbitrary functionality over REST API.
+            * Authentication, when security context is augmented with a script.
+            * Authorization, implemented with scripts and extendable with scripts.
+        * Scripts accept arbitrary param objects defined under "globals" namespace in the individual script configuration.
+        * Scripts have access to custom "properties" defined in [Script Engine Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
+    * Functionality:
+        * Access to managed, system, and configuration objects within the core IDM is abstracted via the `openidm` object.
+        * Custom Java functionality:
+            * Can be provided as a custom OSGi bundle under the `path/to/idm/instance/bundle` directory, or as a regular JAR file under `path/to/idm/instance/lib` directory.
+            * Once available, you can [use custom Java packages in scripts](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package), both JavaScript and Groovy.
+            * You can check for available classes and JAR files and use GroovyScriptLoader to [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
+        * You can [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts using the fully compliant CommonJS module implementation.
+    * Management:
+        * An individual script configuration can specify a script "source" as a single line or a script "file" reference. The configuration itself can be managed directly in the file system.
+        * Scripts defined in separate files need to be placed in certain locations specified in [Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
+        * Inline scripts can be created and updated in the admin UI or directly in configuration files.
+        * Existing scripts, including the default ones under "&{idm.install.dir}/bin/defaults/script", can be overridden by placing custom versions later in the script sources, as described in [Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
+    * Debugging
+        * Debug logging is provided with the `logger` object methods.
+        * _JavaScript_ scripts can use `console.log()`.
+        * Scripts can be evaluated via REST, which can be used to test them if all the necessary bindings can be provided.
+        * Scripts defined in separate files can be attached to a debugger.
+* ICF Connectors
+    * Languages:
+        * You can write [Scripted Connectors With the Groovy Connector Toolkit](https://backstage.forgerock.com/docs/idm/6.5/connector-dev-guide/index.html#chap-groovy-connectors), which "enables you to run Groovy scripts to interact with any external resource".
+        * JavaScript is NOT supported.
+    * Scopes:
+        * The environment is separate from one described for the OSGi framework.
+        * [Implementing ICF Operations With Groovy Scripts](https://backstage.forgerock.com/docs/idm/6.5/connector-dev-guide/index.html#implementing-operations-groovy) describes scopes available for all and particular types of scripted ICF operations.
+* Workflows
+    * Languages:
+        * Groovy, as described in [Defining Activiti Workflows](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#defining-activiti-workflows).
+        * JavaScript is NOT supported.
+    * Management:
+        * Access to workflows is based on IDM roles, and is configured in your project's conf/process-access.json file—as described in [Managing User Access to Workflows](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#ui-managing-workflows).
 
 
 ### <a id="overview-idm-osgi"></a>IDM > OSGi Framework
 
-NOTES:
-
-* Languages:
-    * The Script Engine supports [Groovy](https://www.groovy-lang.org/documentation.html) and JavaScript running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). The 6.5 version of IDM uses Groovy version 2.5.7 and Rhino version 1.7.12 (the latest release of Rhino at the time of writing).
-* Scopes:
-    * Scripting application could be summarized into the following environments described in [Scripting Reference](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-scripting):
-        * Managed Objects:
-            * Events.
-            * Custom Scripted Actions.
-            * Validating data via Scripted Policies.
-        * Synchronization Service:
-            * Events defined via Object-Mapping objects.
-            * Correlation scripts.
-            * Filtering (the source).
-            * Validating (the source and the target).
-            * Validating data via Scripted Policies.
-        * Custom Endpoints, providing arbitrary functionality over REST API.
-        * Authentication, when security context is augmented with a script.
-        * Authorization, implemented with scripts and extendable with scripts.
-    * [Router Service](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-router) provides the uniform interface to all IDM objects and additional scope to all scripts in the core IDM.
-    * Scripts accept arbitrary param objects defined under "globals" namespace in the individual script configuration.
-    * Scripts have access to custom "properties" defined in [Script Engine Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
-* Functionality:
-    * Access to managed, system, and configuration objects within the core IDM is abstracted via the `openidm` object.
-    * Custom Java functionality:
-        * Can be provided as a custom OSGi bundle under the `path/to/idm/instance/bundle` directory, or as a regular JAR file under `path/to/idm/instance/lib` directory.
-        * Once available, you can [use custom Java packages in scripts](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package), both JavaScript and Groovy.
-        * You can check for available classes and JAR files and use GroovyScriptLoader to [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
-    * You can [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts using the fully compliant CommonJS module implementation.
-* Management:
-    * An individual script configuration can specify a script "source" as a single line or a script "file" reference.
-    * Scripts defined in separate files need to be places in certain locations specified in [Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
-* Debugging
-    * Debug logging is provided with the `logger` object methods.
-    * _JavaScript_ scripts can use `console.log()`.
-    * Scripts can be evaluated via REST, which can be used to test them if all the necessary bindings can be provided.
-    * Scripts defined in separate files can be attached to a debugger.
-
-### <a id="overview-idm-icf"></a>IDM > ICF Connectors
-
-### <a id="overview-idm-workflow"></a>IDM > Workflow
-
-### <a id="idm-scripts-location"></a>IDM > The Scripts' Location
+In order to make an HTTP request, the script used `action` method of the `openidm` Java object. You can find more about scripts environment and available for scripts functionality in the IDM docs, in its [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#appendix-scripting). In particular, the `action` method is described in the [openidm.action(resource, actionName, content, params, fields)](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#function-action) section.
 
 ```javascript
 (function () {
@@ -573,8 +582,6 @@ params = {
 }
 ```
 
-In order to make an HTTP request, the script used `action` method of the `openidm` Java object. You can find more about scripts environment and available for scripts functionality in the IDM docs, in its [Scripting Reference](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#appendix-scripting). In particular, the `action` method is described in the [openidm.action(resource, actionName, content, params, fields)](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#function-action) section.
-
 The updated scripts will be copied promptly, but the time it takes for ForgeRock component to pick up the change will be affected by the configuration settings in the `script.json` file:
 
 ```json
@@ -590,6 +597,10 @@ The updated scripts will be copied promptly, but the time it takes for ForgeRock
 ```
 
 You can change the minimum interval setting (in milliseconds) before you deploy or redeploy the sample.
+
+### <a id="overview-idm-workflow"></a>IDM > Workflow
+
+### <a id="overview-idm-icf"></a>IDM > ICF Connectors
 
 ***
 
@@ -812,6 +823,10 @@ Now, if you trigger the event you associated your script with, for example updat
 
 [Back to Contents](#contents)
 
+NOTES:
+
+* The `attributes` scope can be used for data exchange between scriptable objects (that are part of the same chain).
+
 Scripts in IG may be associated with one of the [scriptable object types](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf).
 
 Similar to IDM, IG allows to specify script content either inline in a configuration file or in a designated script file. In either case, only the `application/x-groovy` MIME type is supported. Similar to IDM, IG scripts accept parameters provided as the `args` key in the script configuration. For example, the following [ScriptableFilter](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#ScriptableFilter) definition may be a part of a [Chain Handler](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Chain) and use `example.groovy` script to process the request:
@@ -1025,11 +1040,7 @@ The [References](#references) section contains collection of links to the offici
 
     [Variables Available to All Groovy Scripts](https://backstage.forgerock.com/docs/idm/6.5/connector-dev-guide/index.html#groovy-script-variables) in the Connector Developer's Guide describe the scripted connectors scope.
 
-    In addition, in a script configuration, you can provide arbitrary arguments, defined as JSON (normally, under the "globals" namespace). Any bindings specified by a scripted connector author can also be made available to the script. Properties provided to the script engine (in `conf/script.json`, as described in [Integrator's Guide > Setting the Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config)) may also be available in scripts.
-
-    The functionality supported by the script engine in IDM is available to scripts via the `openidm` object and described in [Integrator's Guide > Scripting Reference > Function Reference](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#function-ref). Scripted connectors have access to the [ICF framework](https://backstage.forgerock.com/docs/idm/6.5/apidocs/) framework.
-
-    In addition, you can [use custom Java packages](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package) and [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts, and [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
+    Any bindings specified by a scripted connector author can also be made available to the script.
 
     ### <a id="summary-application-and-environment-ig"></a> IG
 
@@ -1087,12 +1098,6 @@ The [References](#references) section contains collection of links to the offici
 
 * ### <a id="summary-managing-scripts"></a>Management and Configuration
 
-    ### IDM
-
-    In IDM, the scripts can be managed directly in separate files and referenced from the configuration. The configuration can be itself managed directly in the file system. Alternatively configuration files may be populated with the script content.
-
-    ### IG
-
     ### Configuration File Syntax in IDM and IG
 
     * IDM
@@ -1121,89 +1126,9 @@ The [References](#references) section contains collection of links to the offici
 
 * ### <a id="summary-languages"></a>Languages
 
-    All three components support server-side scripting in Groovy.
-
-    For supporting server-side JavaScript, AM and IDM use [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino)—the scripting engine that has access to the Java environment provided by the products.
-
-    > At the time of this writing, the 6.5 version of AM use Rhino version 1.7R4 and IDM was using version 1.7.12_1. Both products use Groovy version 2.5.7.
-
-    AM allows for client-side scripts, which run in the browser environment and have to comply with it.
-
-    IDM does not support custom client-side JavaScript.
-
     IG does not currently support JavaScript in any form.
 
     It is tempting to say that for server-side scripts, Groovy is a preferable choice as it better integrates with the underlying Java environment. However, when supported, JavaScript can reproduce the same functionality and may be simpler to deal with for those who are familiar with the language and its ecosystem, especially in IDM, which allows to [load CommonJS modules](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500).
-
-* ### <a id="summary-security"></a>Security
-
-    * Across products, administrative access is required for script management.
-
-    1. AM
-
-        * Java Class Whitelist
-        * Java Class Blacklist
-
-    1. IDM
-
-        * No script specific security?
-
-    1. IG
-
-        * No script specific security?
-
-* ### <a id="summary-debugging"></a>Debugging
-
-    ### <a id="summary-debugging-am"></a> AM
-
-    AM does not provide an option for connecting a debugger. However, Global Scripting API Functionality facilitates [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger), which you can set as described in this Setup and Maintenance Guide chapter.
-
-    Debug logging for scripting service and individual scripts could be configured as described in the Development Guide at [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger).
-
-    > AM server debugging configuration can be found in the administrative console under CONFIGURE > SERVER DEFAULTS > General > Debugging. The Debug Directory setting specifies location of the log files. Managing server-wide debugging settings is described in the Setup and Maintenance Guide under [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/maintenance-guide/index.html#sec-maint-debug-logging).
-
-    For example, for the server-side scripts defined in AM console that are a part of an authentication chain, like the one we created, you could navigate to the `your-am-instance/Debug.jsp` page, select "amScript" for Debug instances and "Message" for Level. Then, whenever in your script you use `logger.message` method, the output will be saved in the logs, along with any warnings and errors.
-
-    Then, to access the logs, you can navigate to `your-am-instance-debugging-directory` in Terminal and `tail -f` the log file of interest; in this case the `Authentication` file.
-
-    Alternatively, during development, you could use the `logger.error` method without changing the default debugging configuration, for the "Error" level is always on.
-
-    > JavaScript `console.log` and Rhino's `print` are not implemented for server-side scripts. The client-side JavaScript can output logs into the browser's console as usual.
-
-
-    The Debug instances input on `your-am-instance/Debug.jsp` page will list the Decision Node scripts in the following format:
-
-    scripts.AUTHENTICATION_TREE_DECISION_NODE._script-id_
-
-    The script ID part correspond to the Realms > _Realm Name_ > Scripts > _script-id_ in AM console on a script details page. For example:
-
-    <img alt="Script ID in AM Console" src="README_files/am.scripts.script-id.png" width="1024" />
-
-    <img alt="Script ID on the Debug.jsp page" src="README_files/am.debug.debug-instances.script-id.png" width="1024" />
-
-    When a script associated with the Scripted Decision node outputs logs (at the allowed level set with `Debug.jsp`), the script specific log file is created under `your-am-instance-debugging-directory`. For example:
-
-    ```bash
-    $ cd ~/openam/am/debug$
-    $ ls
-    Authentication  CoreSystem  IdRepo  scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
-    ```
-
-    ```bash
-    $ tail -f scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc
-    scripts.AUTHENTICATION_TREE_DECISION_NODE.fe4a7e3e-aa1d-4d2d-82ad-4830d0c98adc:04/26/2020 07:34:02:654 PM GMT: Thread[ScriptEvaluator-5,5,main]: TransactionId[88093018-65c0-4987-b7af-ef1429ac1c04-46398]
-    ERROR: Helpful error description.
-    ```
-
-    If an error occurs that is not handled within the script itself, it may be reported in the Authentication log. For example, it you try to employ a Java package that is not white listed in the scripting engine settings, the "Access to Java class . . . is prohibited." error will appear in the Authentication log.
-
-    > In the example above, parsing JSON with `groovy.json.JsonSlurper` (in the Groovy version of the script) would require the `groovy.json.internal.LazyMap` class to be allowed in the scripting engine setting. For getting identity with the `IdUtils` method, `com.sun.identity.idm.AMIdentity` would have to be white listed.
-
-    You can specify allowed and dis-allowed Java classes in AM administrative console at Realms > _Realm Name_ > Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_TREE_DECISION_NODE > Secondary Configurations > EngineConfiguration > Java class whitelist/Java class blacklist.
-
-    ### <a id="summary-debugging-idm"></a> IDM
-
-    ### <a id="summary-debugging-ig"></a> IG
 
 ## Summary Table for Server-Side Scripts
 
