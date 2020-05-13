@@ -53,7 +53,7 @@ NOTES:
     * All of the categories share some common, globally provided objects and methods.
     * All server-side scripts have access to the same underlying Java API.
 
-### <a id="overview-am-client-side"></a>Overview > AM > Client-side Scripts
+### <a id="overview-am-client-side"></a>Overview > AM > Client-side
 
 [Back to Contents](#contents)
 
@@ -65,7 +65,7 @@ In AM, authentication in the front channel can be assisted with custom client-si
 
 > An important use case for a client-side script could be collecting user input and/or information about the user agent: [Geolocation](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/geolocation), IP, the navigator properties, and so on.
 
-### <a id="overview-am-server-side"></a>Overview > AM > Server-side Scripts
+### <a id="overview-am-server-side"></a>Overview > AM > Server-side
 
 [Back to Contents](#contents)
 
@@ -88,7 +88,7 @@ The ability to run Java in the server-side scripts is limited by configurable bl
 
 > For example, if your script is written in Groovy, and you need to parse stringified JSON with `groovy.json.JsonSlurper`, the `groovy.json.internal.LazyMap` class would have to be allowed in the scripting engine setting. For getting AM identity with the `IdUtils` method, `com.sun.identity.idm.AMIdentity` would have to be explicitly whitelisted.
 
-### <a id="overview-am-debugging"></a>Overview > AM > Debugging Scripts
+### <a id="overview-am-debugging"></a>Overview > AM > Debugging
 
 [Back to Contents](#contents)
 
@@ -161,20 +161,20 @@ Scripts included in the default AM configuration can serve as a great source of 
 NOTES:
 
 * Custom scripts can be employed in the [Scripted Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripted-module-conf-hints). The module can take a pair of scripts of the following types:
-
 * `Client-side Authentication` (optional):
-
     * Everything you know and love about JavaScript in the browser environment is applicable here and is not specific to Forgerock in terms of run time environment—such as compatibility, debugging options, etc. No server-side Java functionality is available.
     * There will be automatically rendered _self-submitting_ form on the page where the script runs. The form data is POSTed back to AM and the value of an input in the form, populated by the client-side script,  will become available to the server side.
     * For asynchronous JavaScript, you will need to delay auto-submission of the form, and submit it manually when the asynchronous call is completed.
-
 * `Server-side Authentication`:
-
     * The `requestData` object provides access to the Request data.
     * The `idRepository` object provides access to Profile data.
     * The `authState` object value determines outcome of a scripted authentication module. The outcome can be either `SUCCESS` or `FAILURE`.
 
-When used in a Scripted Authentication Module, a client-side script—that loads an external library, makes a call to an external service, and obtains the client's IP—might look like the following:
+You can read about setting up a custom scripted module in [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) and [Device ID (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints) provides an example of using a pair of client-side and server-side scripts.
+
+Scripts can be created and managed in AM console under Realms > _Realm Name_ > Scripts.
+
+A Scripted Module - Client Side script—that loads an external library, makes a call to an external service, and obtains the client's IP—might look like the following:
 
 ```javascript
 var script = document.createElement('script'); // 1
@@ -214,7 +214,7 @@ Specific for Scripted Authentication Module points of consideration:
 
 The corresponding server-side script, used in the same authentication module, can [Access Client-Side Script Output Data](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-authn-client-data) via a String object named `clientScriptOutputData`.
 
-A server-side _JavaScript_ example might look like the following:
+A Scripted Module - Server Side script written in _JavaScript_ might look like the following:
 
 ```javascript
 var failure = true; // 1
@@ -278,7 +278,7 @@ NOTES:
 * In a Scripted Decision Node, accessing the authentication state, the identity's profile, the client side and the request data, interacting with the client side, and moving to the next node can done with methods specific to [Scripted Decision Node API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node).
 * To exit a Scripted Decision Node and to interact with the client side, you need to use [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action). As the Scripted Decision Node does not provide a convenient wrapper for a client-side script. You need to use [Supported Callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#supported-callbacks) to insert the script and to receive the client-side data.
 
-In our example, following the "single task per node" philosophy, the client-side data will be obtained and preserved in one node, and processed and analyzed in the next one.
+In our example, following the "single task per node" philosophy, the client-side data will be obtained and preserved by one node, and processed and analyzed in the next one.
 
 The authentication tree might look like the following:
 
@@ -506,70 +506,47 @@ NOTES:
 
 NOTES:
 
-* The Script Engine supports [Groovy](https://www.groovy-lang.org/documentation.html) and JavaScript running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). The 6.5 version of IDM uses Groovy version 2.5.7 and Rhino version 1.7.12 (the latest release of Rhino at the time of writing).
-* Scripting application could be summarized into the following environments described in [Scripting Reference](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-scripting):
-    * Managed Objects:
-        * Events.
-        * Custom Scripted Actions.
-        * Validating data via Scripted Policies.
-    * Synchronization Service:
-        * Events defined via Object-Mapping objects.
-        * Correlation scripts.
-        * Filtering (the source).
-        * Validating (the source and the target).
-        * Validating data via Scripted Policies.
-    * Custom Endpoints, providing arbitrary functionality over REST API.
-    * Authentication, when security context is augmented with a script.
-    * Authorization, implemented with scripts and extendable with scripts.
-* [Router Service](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-router) provides the uniform interface to all IDM objects and additional scope to all scripts in the core IDM.
-* Scripts accept arbitrary param objects defined under "globals" namespace in the individual script configuration.
-* Scripts have access to custom "properties" defined in [Script Engine Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
-* An individual script configuration can specify a script "source" as a single line or a script "file" reference.
-* Scripts defined in separate files can be attached to a debugger.
-* Scripts can be evaluated via REST, which can be used to test them if all the necessary bindings can be provided.
-* Access to managed, system, and configuration objects within the core IDM is abstracted via the `openidm` object.
-* Custom Java functionality:
-    * Can be provided as a custom OSGi bundle under the `path/to/idm/instance/bundle` directory, or as a regular JAR file under `path/to/idm/instance/lib` directory.
-    * Once available, you can [use custom Java packages in scripts](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package), both JavaScript and Groovy.
-    * You can check for available classes and JAR files and use GroovyScriptLoader to [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
-* You can [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts using the fully compliant CommonJS module implementation.
+* Languages:
+    * The Script Engine supports [Groovy](https://www.groovy-lang.org/documentation.html) and JavaScript running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). The 6.5 version of IDM uses Groovy version 2.5.7 and Rhino version 1.7.12 (the latest release of Rhino at the time of writing).
+* Scopes:
+    * Scripting application could be summarized into the following environments described in [Scripting Reference](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-scripting):
+        * Managed Objects:
+            * Events.
+            * Custom Scripted Actions.
+            * Validating data via Scripted Policies.
+        * Synchronization Service:
+            * Events defined via Object-Mapping objects.
+            * Correlation scripts.
+            * Filtering (the source).
+            * Validating (the source and the target).
+            * Validating data via Scripted Policies.
+        * Custom Endpoints, providing arbitrary functionality over REST API.
+        * Authentication, when security context is augmented with a script.
+        * Authorization, implemented with scripts and extendable with scripts.
+    * [Router Service](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#appendix-router) provides the uniform interface to all IDM objects and additional scope to all scripts in the core IDM.
+    * Scripts accept arbitrary param objects defined under "globals" namespace in the individual script configuration.
+    * Scripts have access to custom "properties" defined in [Script Engine Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
+* Functionality:
+    * Access to managed, system, and configuration objects within the core IDM is abstracted via the `openidm` object.
+    * Custom Java functionality:
+        * Can be provided as a custom OSGi bundle under the `path/to/idm/instance/bundle` directory, or as a regular JAR file under `path/to/idm/instance/lib` directory.
+        * Once available, you can [use custom Java packages in scripts](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package), both JavaScript and Groovy.
+        * You can check for available classes and JAR files and use GroovyScriptLoader to [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
+    * You can [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts using the fully compliant CommonJS module implementation.
+* Management:
+    * An individual script configuration can specify a script "source" as a single line or a script "file" reference.
+    * Scripts defined in separate files need to be places in certain locations specified in [Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
+* Debugging
+    * Debug logging is provided with the `logger` object methods.
+    * _JavaScript_ scripts can use `console.log()`.
+    * Scripts can be evaluated via REST, which can be used to test them if all the necessary bindings can be provided.
+    * Scripts defined in separate files can be attached to a debugger.
 
 ### <a id="overview-idm-icf"></a>IDM > ICF Connectors
 
 ### <a id="overview-idm-workflow"></a>IDM > Workflow
 
-Basic information about scripting in IDM can be found in its Integrator's Guide, in the [Extending IDM Functionality By Using Scripts](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/#chap-scripting) chapter, and in other sections of IDM documentation referenced from there.
-
-Scripts in IDM could be associated with its endpoints or events connected to managed objects.
-
-As the docs state, the custom scripts could be written in JavaScript or Groovy. In this writing, we will create both versions of an example script to run against the default environment defined in the `/path/to/idm/conf/script.json` file (under the IDM installation in the running container); for example, in `/opt/openidm/conf/script.json`. If a corresponding file is defined in the staging area, in `/path/to/forgeops/docker/7.0/idm/conf/script.json` in the described here example, this file will be copied to the container when it is deployed.
-
 ### <a id="idm-scripts-location"></a>IDM > The Scripts' Location
-
-The script content can be defined either inline in a configuration file (that is, a file under the `/path/to/idm/conf` directory), or in a separate script file. For the purposes of this example, we will use the latter option, as it provides a comfortable environment for writing multiline scripts and additional options for debugging.
-
-> Depending on your deployment strategy, defining scripts in files may not be supported, but it is an option in the described here environment which will allow us to demonstrate general principles for scripting in IDM.
-
-The locations that IDM is aware of and will read a script file from are defined in the `sources` key in the  `script.json` file:
-
-```json
-    "sources" : {
-        "default" : {
-            "directory" : "&{idm.install.dir}/bin/defaults/script"
-        },
-        "install" : {
-            "directory" : "&{idm.install.dir}"
-        },
-        "project" : {
-            "directory" : "&{idm.instance.dir}"
-        },
-        "project-script" : {
-            "directory" : "&{idm.instance.dir}/script"
-        }
-    }
-```
-
-We will place the example scripts in the location denoted as `"&{idm.instance.dir}/script"`, which corresponds to `/path/to/idm/script` in the running IDM container and `/path/to/forgeops/docker/6.5/idm/script` in the staging area. You can navigate there and create `example.js` file with the following content:
 
 ```javascript
 (function () {
