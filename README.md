@@ -19,10 +19,11 @@ The [References](#references) section contains a comprehensive list of relevant 
         * [ICF Connectors](#overview-idm-icf)
         * [Workflows](#overview-idm-workflow)
     * [IG](#overview-ig)
+* [Summary Table](#summary-table)
 * [Comparison](#comparison)
-* [Summary](#summary)
 * [Conclusion](#conclusion)
 * [Examples](README.Examples.md)
+* [References](README.References.md)
 
 ## <a id="overview"></a>Overview
 
@@ -478,13 +479,13 @@ Now, if you trigger the event you associated your script with, for example updat
 
 [Back to Contents](#contents)
 
-NOTES:
+#### Points of Consideration:
 
-* The `attributes` scope can be used for data exchange between scriptable objects (that are part of the same chain).
+* Scripts in IG may be associated with one of the [scriptable object types](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf).
+* The [top level objects](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#object-model-conf) provide functionality and scope in IG handlers.
+* HTTP calls can be asynchronous and using non-blocking APIs is the recommended approach for efficient use of resources and preventing deadlock situations.
 
-Scripts in IG may be associated with one of the [scriptable object types](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf).
-
-Similar to IDM, IG allows to specify script content either inline in a configuration file or in a designated script file. In either case, only the `application/x-groovy` MIME type is supported. Similar to IDM, IG scripts accept parameters provided as the `args` key in the script configuration. For example, the following [ScriptableFilter](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#ScriptableFilter) definition may be a part of a [Chain Handler](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Chain) and use `example.groovy` script to process the request:
+Similar to IDM, IG allows to specify script content either inline in a configuration file or in a designated script file. In either case, only the `application/x-groovy` MIME type is supported. Similar to IDM, IG scripts accept parameters—in this case, provided as the `args` key in the script configuration. For example, the following [ScriptableFilter](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#ScriptableFilter) definition may be a part of a [Chain Handler](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#Chain) and use `example.groovy` script to process the request:
 
 ```json
 {
@@ -572,126 +573,28 @@ A multiline script can be defined in a configuration file as an array of strings
 ]
 ```
 
-## <a id="comparison"></a>Comparison
-
-## <a id="summary"></a>Summary
+## <a id="summary-table"></a>Summary Table (for Server-side Scripts)
 
 [Back to Contents](#contents)
 
-This section is a non-exhaustive overview of different scripting aspects in the three products.
+| Script Feature | IDM | IG | AM |
+|-|-|-|-|
+| Type/Language | `text/javascript`, `groovy` | `application/x-groovy` | JavaScript  (Rhino), JavaScript (browser), Groovy<br>Depends on script's `context` type (labeled `Script Type` in AM Console) |
+| Configuration | Part of a configuration file (JSON) | Part of a configuration file (JSON) | Defined in AM console and saved in encoded form in a configuration file in the `amster` pod file system (`/opt/amster/config/realms/root/Scripts`) |
+| Managing | File, JSON configuration, Script Manager | File, JSON configuration, Studio (may not be available in ForgeOps) | AM Console, REST, `ssoadm` command |
+| Validation | REST | | AM Console, REST |
+| Multiline Source | `\n` | Array (of strings) | UI editor |
+| Arguments | The `globals` namespace | `args` key | Direct editing |
+| Access to | `openidm` functions, request, context, managed object, resource information, operation results | request, context, etc., [Properties, Available Objects, and Imported Classes](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf) | Depends on context |
+| Other Context Differences | | |
+| Extras | | Capture Decorator | |
+| Security | | | Security Settings Component: Java Class White/Black Lists, System (JVM) SecurityManager|
+| Debugging | Debugger can be attached | | [Debug Logging](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-logger) |
+| Particularities | | | User-created scripts are realm-specific |
+| HTTP Request | | | `org.forgerock.http.protocol`, Synchronous [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-http-client)|
+| Exported Scripts Location | | | `/path/to/forgeops/docker/6.5/amster/config/realms/root/Scripts` |
 
-The [References](#references) section contains collection of links to the official scripting documentation. The links are organized by product and by area of concern.
-
-* ### <a id="summary-application-and-environment"></a>Application and Environment
-
-    Scripting application is augmenting or extending native functionality of a product. The extension points could be events associated with an object or a procedure; for example, an update event on a managed object in IDM. Or, the scripts could represent a procedure; for example, scripts performing authentication in AM.
-
-    Scripts' environment could be described as access to methods and data. This may depend on the context the script is running in: the product and the particular procedure the script is extending. Even within the same product, the context may vary as the product components implement different functionality and expose different APIs.
-
-    ### <a id="summary-application-and-environment-am"></a> AM
-
-    #### <a id="am-scripting-client-side"></a>AM > Client-Side Scripts
-
-    Scriptable access to the browser environment is a unique feature of authentication procedures in AM, in comparison to the other script applications in the three products.
-
-    #### <a id="am-scripting-server-side"></a>AM > Server-Side Scripts
-
-    All server-side scripts have access to the following functionality:
-
-    * [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-http-client) with the client object, httpClient, and the `org.forgerock.http.protocol` package.
-
-        From scripts, AM makes synchronous network requests with the HTTP client object. The requests are blocking until the script returns or times out. The latter is defined in the Server-side Script Timeout setting. The setting could be in the AM console under Configure > Global Services > Scripting > Secondary Configurations > AUTHENTICATION_SERVER_SIDE > Secondary Configurations > EngineConfiguration.
-
-    * [Debug Logging](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-logger) with the `logger` object methods.
-
-    Although via different methods and objects, the server-side scripts are also capable of:
-
-    * Accessing request data.
-
-        Limited to request headers in authentication nodes.
-
-    * Accessing profile data, when `username` is available.
-
-        This means read, add, and update access to the AM identity attributes.
-
-    * Accessing existing session data.
-
-    In addition:
-
-    * Authentication scripts in chains have access to authentication state, `authState`, indicating the outcome of the current authentication in either `SUCCESS` or `FAILED` value.
-
-    * Authentication scripts in trees can set and access properties in the `sharedState` object and in `transientState` object; the latter may not persist through authentication and is designated for sensitive information like passwords.
-
-    * Scripted policy decision scripts have access to the authorization state, passed in data, and username; they can set attributes in the authorization response.
-
-    * OAuth2 Access Token Modification script has access to the access token and to the scope associated with the authorization request.
-
-    * OIDC Claims Script has access to the server default and the requested claims information.
-
-    You can find details on APIs available to server-side scripts in AM in the docs, under [Developing with Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#chap-dev-scripts), [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition), and [Modifying Access Token Content Using Scripts](https://backstage.forgerock.com/docs/am/6.5/oauth2-guide/index.html#modifying-access-tokens-scripts).
-
-
-    The server-side scripts can load available Java classes and packages. [OpenAM Server Only 6.5.2.3 Documentation](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html) describes the single default source of Java functionality available for the server-side scripts, although some features may only make sense in certain contexts.
-
-    > For example, the `org.forgerock.openam.auth.node.api.Action` class, representing [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action), is applicable only in the context of authentication nodes and trees, but it is not usable in authentication modules.
-    >
-    > Extending AM with custom Java development is available via plugins, modules, and nodes and is described in part in [Customizing Authorization](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#chap-authz-customization) and [Customizing Authentication](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#chap-authn-customization) chapters of the corresponding guides.
-
-    #### <a id="am-trees-and-chains"></a>AM > Server-side Scripts in Authentication Chains and Authentication Trees
-
-    The server-side authentication functionality can accept data collected by the client-side scripts, but the way the data is sent and received depends on the type of the authentication flow.
-
-    AM supports two types of authentication: with [Authentication Modules and Chains](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#about-authentication-modules-and-chains) and with [Authentication Nodes and Trees](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-about-authentication-trees).
-
-    A scriptable authentication module can use a pair of client-side and server-side scripts. Data collected with the client-side script can be used to populate the `output` input in automatically provided form. The form can be submitted to the server, automatically or by using provided `submit()` method. Then, the string value of the `output` input becomes available to the server-side script as a well-known variable, `clientScriptOutputData`.
-
-    A scriptable authentication node in a tree can run arbitrary JavaScript on the client-side and receive data back by using interactive features named [callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-callbacks), as described in [Sending and Executing JavaScript in a Callback](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#client-side-javascript) in Authentication Node Development Guide.
-
-    ### <a id="summary-application-and-environment-idm"></a> IDM
-
-    IDM manages identities within and across identity stores. Seemingly, at any stage of this process scripts can be applied as a part of a security decision, managed object action, event handler, or validation policy, custom endpoint action, synchronization procedure, or connection to backend resource. The major applications could be categorized as the following:
-
-    * Managed Object
-
-        * Events (Triggers), such as onCreate, onUpdate, onDelete, etc.
-        * Custom Scripted Actions, performed in the context of the managed object.
-
-    * Synchronization Service
-
-        * Events—such as onCreate, onUpdate, onDelete, etc., or successful reconciliation—defined via Object-Mapping Objects.
-        * Correlation scripts, to determine unlinked target object.
-        * Filtering the source.
-        * Validating the source and the target.
-
-    * Scripted Policies, used for data validation in Managed Objects and Synchronization Service.
-
-    * Authentication, when security context is augmented with a script.
-
-    * Authorization, implemented with scripts and extendable with scripts.
-
-    * Scripted Connectors, to communicate with specific identity providers/resources.
-
-    * Custom Endpoints, providing arbitrary functionality over REST API.
-
-    * Activiti Workflows, referencing a Groovy script.
-
-    In addition:
-
-    * Router Service, provides the uniform interface to all IDM objects, and its conditions and event handlers can be scripted.
-
-    > The events by which scripts can be invoked are also summarized in [Places to Trigger Scripts](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#script-places).
-    >
-    > Links to documentation where various aspects of scripts' application and environment are covered in details could be found at the end of this writing, in [References > IDM > Application and Environment](#references-idm-application-and-environment).
-
-    A script scope will depend on the script's application. [Variables Available to Scripts](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#script-variables) and [Router Service Reference > Script Scope](https://backstage.forgerock.com/docs/idm/6/integrators-guide/#filter-script-scope) provide detailed information on the context information available to scripts in IDM.
-
-    [Variables Available to All Groovy Scripts](https://backstage.forgerock.com/docs/idm/6.5/connector-dev-guide/index.html#groovy-script-variables) in the Connector Developer's Guide describe the scripted connectors scope.
-
-    Any bindings specified by a scripted connector author can also be made available to the script.
-
-    ### <a id="summary-application-and-environment-ig"></a> IG
-
-
+## <a id="comparison"></a>Comparison
 
     As you could observe, the context of a server-side script largely depends on the functionality the script extends, although some global APIs are universally available within a product.
 
@@ -776,25 +679,6 @@ The [References](#references) section contains collection of links to the offici
     IG does not currently support JavaScript in any form.
 
     It is tempting to say that for server-side scripts, Groovy is a preferable choice as it better integrates with the underlying Java environment. However, when supported, JavaScript can reproduce the same functionality and may be simpler to deal with for those who are familiar with the language and its ecosystem, especially in IDM, which allows to [load CommonJS modules](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500).
-
-## Summary Table for Server-Side Scripts
-
-| Script Feature | IDM | IG | AM |
-|-|-|-|-|
-| Type/Language | `text/javascript`, `groovy` | `application/x-groovy` | JavaScript  (Rhino), JavaScript (browser), Groovy<br>Depends on script's `context` type (labeled `Script Type` in AM Console) |
-| Configuration | Part of a configuration file (JSON) | Part of a configuration file (JSON) | Defined in AM console and saved in encoded form in a configuration file in the `amster` pod file system (`/opt/amster/config/realms/root/Scripts`) |
-| Managing | File, JSON configuration, Script Manager | File, JSON configuration, Studio (may not be available in ForgeOps) | AM Console, REST, `ssoadm` command |
-| Validation | REST | | AM Console, REST |
-| Multiline Source | `\n` | Array (of strings) | UI editor |
-| Arguments | The `globals` namespace | `args` key | Direct editing |
-| Access to | `openidm` functions, request, context, managed object, resource information, operation results | request, context, etc., [Properties, Available Objects, and Imported Classes](https://backstage.forgerock.com/docs/ig/6.5/reference/index.html#script-conf) | Depends on context |
-| Other Context Differences | | |
-| Extras | | Capture Decorator | |
-| Security | | | Security Settings Component: Java Class White/Black Lists, System (JVM) SecurityManager|
-| Debugging | Debugger can be attached | | [Debug Logging](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-logger) |
-| Particularities | | | User-created scripts are realm-specific |
-| HTTP Request | | | `org.forgerock.http.protocol`, Synchronous [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6/dev-guide/#scripting-api-global-http-client)|
-| Exported Scripts Location | | | `/path/to/forgeops/docker/6.5/amster/config/realms/root/Scripts` |
 
 ## <a id="conclusion"></a>Conclusion
 
