@@ -596,89 +596,98 @@ A multiline script can be defined in a configuration file as an array of strings
 
 ## <a id="comparison"></a>Comparison
 
-    As you could observe, the context of a server-side script largely depends on the functionality the script extends, although some global APIs are universally available within a product.
+### <a id="comparison-http-request"></a> HTTP Request
 
-    Some methods and data, provide same functionality but via different implementations. Consider, for example, making back-channel outbound HTTP call in all three products:
+As you could observe, the context of a server-side script largely depends on the functionality the script extends, although some global APIs are universally available within a product.
 
-    ```groovy
-    // AM
+Some methods and data, provide same functionality but via different implementations. Consider, for example, making back-channel outbound HTTP call in all three products:
 
-    import groovy.json.JsonSlurper;
+```groovy
+// AM
 
-    def request = new Request();
-    request.setUri("https://jsonplaceholder.typicode.com/users");
-    request.setMethod("GET");
+import groovy.json.JsonSlurper;
 
-    def response = httpClient.send(request).get();
-    def result = new JsonSlurper().parseText(response.getEntity().toString());
-    ```
+def request = new Request();
+request.setUri("https://jsonplaceholder.typicode.com/users");
+request.setMethod("GET");
 
-    ```groovy
-    // IDM
+def response = httpClient.send(request).get();
+def result = new JsonSlurper().parseText(response.getEntity().toString());
+```
 
-    import org.forgerock.openidm.action.*
+```groovy
+// IDM
 
-    def result = openidm.action("external/rest", "call", {
-        "url": "https://jsonplaceholder.typicode.com/users",
-        "method": "GET"
-    });
-    ```
+import org.forgerock.openidm.action.*
 
-    ```groovy
-    // IG
+def result = openidm.action("external/rest", "call", {
+    "url": "https://jsonplaceholder.typicode.com/users",
+    "method": "GET"
+});
+```
 
-    def call = new Request();
-    call.setUri("https://jsonplaceholder.typicode.com/users");
-    call.setMethod("GET");
+```groovy
+// IG
 
-    return http.send(call)
-    .thenOnResult { response ->
-        def result = response.entity.json;
+def call = new Request();
+call.setUri("https://jsonplaceholder.typicode.com/users");
+call.setMethod("GET");
 
-        logger.info("Call result: " + result);
+return http.send(call)
+.thenOnResult { response ->
+    def result = response.entity.json;
 
-        response.close();
-    }
-    .thenAsync({
-        next.handle(context, request);
-    } as AsyncFunction)
-    ```
+    logger.info("Call result: " + result);
 
-    A notable difference in IG implementation here is that it allows for asynchronous operation.
+    response.close();
+}
+.thenAsync({
+    next.handle(context, request);
+} as AsyncFunction)
+```
 
-* ### <a id="summary-managing-scripts"></a>Management and Configuration
+A notable difference in IG implementation here is that it allows for asynchronous operation.
 
-    ### Configuration File Syntax in IDM and IG
+### <a id="summary-managing-scripts"></a>Management and Configuration
 
-    * IDM
+Syntax for defining scripts in configuration files is different in IDM and IG; see the "onRequest" and the "config" key content, respectively:
 
-        ```json
-        {
+* IDM
+
+    ```json
+    {
+        "pattern" : "^(managed|system|internal)($|(/.+))",
+        "onRequest" : {
             "type" : "javascript|groovy",
             "source|file" : "code|URI",
             "globals" : {}
         }
-        ```
+        },
+        "methods" : [
+            "patch"
+        ]
+    },
+    ```
 
-    * IG
+* IG
 
-        ```json
-        {
-            "name": "name",
-            "type": "ScriptableFilter|ScriptableHandler|ScriptableThrottlingPolicy|ScriptableAccessTokenResolver|OAuth2ResourceServerFilter",
-            "config": {
-                "type": "application/x-groovy",
-                "file": "SimpleFormLogin.groovy",
-                "args": {}
-            }
+    ```json
+    {
+        "name": "name",
+        "type": "ScriptableFilter|ScriptableHandler|ScriptableThrottlingPolicy|ScriptableAccessTokenResolver|OAuth2ResourceServerFilter",
+        "config": {
+            "type": "application/x-groovy",
+            "file": "SimpleFormLogin.groovy",
+            "args": {}
         }
-        ```
+    }
+    ```
 
-* ### <a id="summary-languages"></a>Languages
+### <a id="summary-languages"></a>Languages
 
-    IG does not currently support JavaScript in any form.
+IG does not currently support JavaScript in any form.
 
-    It is tempting to say that for server-side scripts, Groovy is a preferable choice as it better integrates with the underlying Java environment. However, when supported, JavaScript can reproduce the same functionality and may be simpler to deal with for those who are familiar with the language and its ecosystem, especially in IDM, which allows to [load CommonJS modules](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500).
+It is tempting to say that for server-side scripts, Groovy is a preferable choice as it better integrates with the underlying Java environment. However, when supported, JavaScript can reproduce the same functionality and may be simpler to deal with for those who are familiar with the language and its ecosystem, especially in IDM, which allows to [load CommonJS modules](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500).
 
 ## <a id="conclusion"></a>Conclusion
 
