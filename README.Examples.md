@@ -14,21 +14,24 @@
 
     NOTES:
 
+    * All server-side scripts have access to [AM 6.5.2.3 Public API](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html) and can use provided by [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global) HTTP services and debug logging.
     * Custom scripts can be employed in the [Scripted Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#scripted-module-conf-hints). The module can take a pair of scripts of the following types:
     * `Client-side Authentication` (optional):
         * Everything you know and love about JavaScript in the browser environment is applicable here and is not specific to Forgerock in terms of run time environment—such as compatibility, debugging options, etc. No server-side Java functionality is available.
         * There will be automatically rendered _self-submitting_ form on the page where the script runs. The form data is POSTed back to AM and the value of an input in the form, populated by the client-side script,  will become available to the server side.
         * For asynchronous JavaScript, you will need to delay auto-submission of the form, and submit it manually when the asynchronous call is completed.
     * `Server-side Authentication`:
-        * The `requestData` object provides access to the Request data.
-        * The `idRepository` object provides access to Profile data.
-        * The `authState` object value determines outcome of a scripted authentication module. The outcome can be either `SUCCESS` or `FAILURE`.
+        * [Authentication API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-authn) describes how to access:
+            * The client-side script data.
+            * The request data.
+            * The identity's profile.
+            * The authentication state object, `authState`. The value assigned to this object determines outcome of a scripted authentication module. The outcome can set to `SUCCESS` or `FAILURE` constants.
 
-    You can read about setting up a custom scripted module in [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) and [Device ID (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints) provides an example of using a pair of client-side and server-side scripts.
+    [Using Server-side Authentication Scripts in Authentication Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-scripted-auth-module) and [Device ID (Match) Authentication Module](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#device-id-match-hints) examples provide detailed instructions for setting up a scripted authentication module.
 
-    Scripts can be created and managed in AM console under Realms > _Realm Name_ > Scripts.
+    The scripts can be created and managed in AM console under Realms > _Realm Name_ > Scripts.
 
-    A Scripted Module - Client Side script—that loads an external library, makes a call to an external service, and obtains the client's IP—might look like the following:
+    A script of the `Client-side Authentication` type that loads an external library, makes a call to an external service, and obtains the client's IP might look like the following:
 
     ```javascript
     var script = document.createElement('script'); // 1
@@ -53,10 +56,10 @@
     Legend:
 
     1. Create a script element and add to DOM for loading an external library.
-    2. When the library is loaded, make a request to an external source to obtain the client's IP information.
-    3. Save the information, received as a JSON object, as a string in an input in the automatically rendered form.
+    2. When the library is loaded, make a request to an external resource to obtain the client's IP information.
+    3. Save the information, received as a JSON object, as a string in the automatically provided input.
     4. When the HTTP call is complete, submit the form.
-    5. If the HTTP request takes more time than the specified timeout, auto submit the form.
+    5. Allow the form to auto submit if the HTTP request takes more time to complete than the specified timeout.
 
     Specific for Scripted Authentication Module points of consideration:
 
@@ -64,11 +67,11 @@
     * The input for the client-side data can be referenced via the `output` object.
     * The form can be submitted with the automatically provided `submit()` function.
 
-    > If you'd like to inspect the page content, you can further delay submission of the form or stop JavaScript execution with the good old `alert()`.
+    > If you'd like to inspect the page content, you can further delay submission of the form or stop JavaScript execution with `alert()`.
 
     The corresponding server-side script, used in the same authentication module, can [Access Client-Side Script Output Data](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-authn-client-data) via a String object named `clientScriptOutputData`.
 
-    A Scripted Module - Server Side script written in _JavaScript_ might look like the following:
+    A script of the `Server-side Authentication` type, written in _JavaScript_ might look like the following:
 
     ```javascript
     var failure = true; // 1
@@ -105,16 +108,16 @@
     Legend:
 
     1. Set expectations low and only allow for the success outcome if everything checks out.
-    2. Parse the data submitted from the client-side, assuming it is stringified JSON. Create a JavaScript object—so that its individual properties can be easily accessed.
-    3. Compare the user's identity postal address managed in AM with the zip code obtained from the client side.
+    2. Parse the data submitted from the client-side.
+    3. Compare the identity's profile postal address with the zip code data obtained from the client side.
 
-        The `idRepository` object is a part of the [Authentication API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-authn) available for scripts in authentication modules. Using its methods, we can access the identity's attributes.
+        The `idRepository` object is a part of the [Authentication API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-authn) available for scripts in authentication modules. Using its methods, we can access the identity attributes.
 
-        We assume that in this authentication process `username` is set in an earlier authentication module.
+        We assume that in this authentication process `username` is set in an earlier authentication module; for example, the `Data Store` type module.
 
-        The value received from the `getAttribute` method is a Java `HashSet`; we convert it to a string before the comparison.
+        The `getAttribute` method returns a Java `HashSet`; we convert it to a string prior to the comparison.
 
-    4. Use the `org.forgerock.http.protocol` package for configuring an HTTP request. Use the full path to a Java class in server-side _JavaScript_.
+    4. Use the `org.forgerock.http.protocol` package for configuring an HTTP request. Use the _full path_ to a Java class (or a static method) in server-side _JavaScript_.
     5. Use the `httpClient` object provided by [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global) for making an outbound HTTP request.
     6. Check the user's email against a "blacklist" received from an external resource.
     7. Depending on the result that the script produced, set the [Authentication State](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-authn-state) value to define the outcome of this module.
@@ -127,12 +130,20 @@
 
     NOTES:
 
-    * Custom scripts of the `Decision node script for authentication trees` type can be used in a [Scripted Decision Node](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#auth-node-scripted-decision).
-    * `outcome` of a Scripted Decision Node could be populated with any string. The tree layout determines the path a particular outcome takes the authentication flow to.
-    * In a Scripted Decision Node, accessing the authentication state, the identity's profile, the client side and the request data, interacting with the client side, and moving to the next node can done with methods specific to [Scripted Decision Node API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node).
-    * To exit a Scripted Decision Node and to interact with the client side, you need to use [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action). As the Scripted Decision Node does not provide a convenient wrapper for a client-side script. You need to use [Supported Callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#supported-callbacks) to insert the script and to receive the client-side data.
+    * All server-side scripts can use [Global Scripting API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global) for using HTTP services and debug logging.
+    * A custom script of the `Decision node script for authentication trees` type can be used in a [Scripted Decision Node](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#auth-node-scripted-decision).
+    * `outcome` of a Scripted Decision Node could be any string. The tree layout determines the authentication path.
+    * [Scripted Decision Node API Functionality](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node) and [The Action Interface](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#core-action) allow for:
+        * [Storing Values in Shared Tree State](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-tree-state).
+        * [Accessing an Identity's Profile](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-user-profile).
+        * Interacting with the client side via [Creating and Managing Callbacks](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-user-profile) and sending them to the user with the `send()` method.
 
-    In our example, following the "single task per node" philosophy, the client-side data will be obtained and preserved by one node, and processed and analyzed in the next one.
+            A Scripted Decision Node, the one of the `Decision node script for authentication trees` type, does not provide a convenient wrapper for a client-side script. You need to use [Supported Callbacks](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#supported-callbacks) to insert the script and receive the client-side data.
+        * Exiting the node with the `goTo()` method.
+        * [Accessing Request Header Data](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-requestHeaders).
+        * [Accessing Existing Session Data](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-node-existingSession).
+
+    In our example, following the "single task per node" philosophy, there will be some client-side data obtained and preserved by one node, and processed and analyzed in the next one.
 
     The authentication tree might look like the following:
 
@@ -140,7 +151,7 @@
 
     ### The First Scripted Decision Node
 
-    The Action Interface, the callbacks, and other functionality can be provided by the AM's Java API. It is easier to consume with a Groovy script, so we will take a look at a Groovy example first:
+    The Action Interface, the callbacks, and other functionality can be provided by the Java API. It is easier to consume with a Groovy script, so we will take a look at a Groovy example first:
 
     ```groovy
     /*
@@ -204,7 +215,7 @@
     Legend:
 
     1. Import the API that allows for using the Action Interface and executing callbacks.
-    2. The client-side portion can be defined directly in the body of `Decision node script for authentication trees` script. Provide a multiline definition of the client-side script to be executed in the user's browser.
+    2. The client-side portion can be defined directly in the body of `Decision node script for authentication trees` script. Provide a multiline definition of the client-side script to be executed in the user's browser:
 
         ```javascript
         var script = document.createElement('script'); // A
@@ -232,21 +243,21 @@
 
         * A. Create a script element and add to DOM for loading an external library.
         * B. When the library is loaded, make a request to an external source to obtain the client's IP information.
-        * C. Save the information, received as a JSON object, as a string in an input in the automatically rendered form.
+        * C. Save the information, received as a JSON object, as a string in the input constructed with `HiddenValueCallback`.
         * D. When the HTTP call is complete, submit the form.
-        * E. If the HTTP request takes more time than the specified timeout, auto submit the form.
+        * E. If the HTTP request takes more time than the specified timeout, submit the form after a timeout.
 
         Specific for Scripted Decision Node points of considerations:
 
         * The form is NOT self-submitting.
-        * The input for the client-side data needs to be referenced directly.
+        * The input for the client-side data needs to be referenced directly (unlike authentication chain modules where the callback input can be references via the `output` object).
         * There is no automatically provided `submit()` function.
 
         > If you'd like to inspect the page content, you can further delay submission of the form or stop JavaScript execution with `alert()`.
 
-    3. Check if any callbacks have been already requested by the node; if not, specify the two for inserting a script in the user's browser and receiving a submitted form value from the client side. The callbacks will be sent to the user's browser.
+    3. Check if any callbacks have been already requested by the node; if not, specify the two for inserting a script into the user's browser and receiving a submitted form value from the client side. The callbacks will be sent to the user's browser.
 
-    4. When the callbacks have been requested, and the form input has been populated and submitted to the server side, access the form value and save under the `clientScriptOutputData` key in the shared state object.
+    4. When the callbacks have been requested, and the form input has been populated and submitted to the server side, access the form value and save it under the `clientScriptOutputData` (an arbitrary name) key in the shared state object.
 
         As authentication in a tree worries along, the nodes may capture information and save it in special objects named [sharedState and transientState](https://backstage.forgerock.com/docs/am/6.5/auth-nodes/index.html#accessing-tree-state). This shared state is available for the next node in the tree.
 
@@ -254,11 +265,13 @@
 
     5. Move to the next node with the outcome being set according to the failure status.
 
-    > In future versions of AM, there may already be predefined nodes to perform certain client-side operations. In the marketplace, there is an authentication node for version 6.5 that allows to run custom JavaScript in the user's browser, [Client Script Auth Tree Node](https://backstage.forgerock.com/marketplace/api/catalog/entries/AWAm-FCxfKvOhw29pnIp).
+    > In future versions of AM, there may already be predefined nodes to perform certain client-side operations.
+    >
+    > In the marketplace, there is an authentication node for AM version 6.5 that provides an input for specifying a client-side script, the [Client Script Auth Tree Node](https://backstage.forgerock.com/marketplace/api/catalog/entries/AWAm-FCxfKvOhw29pnIp).
 
     #### The Second Scripted Decision Node
 
-    The next node in the tree will be able to retrieve the IP information by querying the shared state. A Groovy example:
+    The next node in the tree will retrieve the client-side data by querying the shared state. A Groovy example:
 
     ```groovy
     /*
@@ -297,17 +310,17 @@
     }
     ```
 
-    1. Import the `org.forgerock.http.protocol` package to configure `httpClient`.
+    1. Import the `org.forgerock.http.protocol` package for configuring the `httpClient` object.
     2. Import the API that enables the Action Interface.
-    3. Import the `IdUtils` static class which allows access to the identity's profile.
-    4. Import the `jsonSlurper` class in order to parse the stringified JSON received from the client-script and preserved in the shared state.
-    5. Assuming the identity has been verified in a previous node, refer to the identity by its username.
-    6. Parse the client data preserved in the shared state.
-    7. Define the outcome by matching an attribute from the client data and one from the identity.
+    3. Import the `IdUtils` static class for accessing the identity's profile.
+    4. Import the `jsonSlurper` class for parsing the stringified JSON received from the client side script.
+    5. Assuming the identity has been verified in a previous node, refer to the identity by its username (obtained from the shared state).
+    6. Parse the client data.
+    7. Define the outcome by matching an attribute value from the client data and the one associated with the identity.
     8. Prepare a network request as described in [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#scripting-api-global-http-client) in the Development Guide.
     9. Receive and parse the response.
     10. Decide the outcome of the node depending on whether or not the user can be found in the online resource, which represents a "blacklist".
-    11. Proceed to the next node using the Action interface method.
+    11. Proceed to the next node using the `goTo()` Action interface method.
 
     > The client IP information could be used in [Scripting a Policy Condition](https://backstage.forgerock.com/docs/am/6.5/authorization-guide/index.html#sec-scripted-policy-condition)—as demonstrated in the `Scripted Policy Condition` script included in the default AM configuration.
 
