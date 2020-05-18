@@ -1,13 +1,13 @@
 
 # <a id="top"></a>Different Scripting Environments in ForgeRock Products
 
-Three of ForgeRock Identity Platform products, [Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG), allow to extend their functionality with scripts written in JavaScript or Groovy and evaluated during the run time.
+Three of ForgeRock Identity Platform products—[Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG)—allow to extend their functionality with scripts written in JavaScript or Groovy and evaluated during the run time.
 
 Scripting is broadly used in the products and broadly covered across [ForgeRock Product Documentation](https://backstage.forgerock.com/docs/). There are many articles describing scripting environment and application, often in a context of particular task and supplied with examples.
 
-This writing aims at a comparison of scripting environments in the three products in the context of a particular task—making an outbound HTT request.
+This writing aims at a comparison of scripting environments in the three products using the context of a particular task—making an outbound HTTP request from a server-side script.
 
-The [References](#references) section contains a comprehensive list of relevant links to the official docs; some are also will also be provided inline.
+The [References](#references) section contains a collection of relevant links to the official docs; some of the references also also provided inline.
 
 ## <a id="contents"></a>Contents
 * [Overview](#overview)
@@ -60,9 +60,9 @@ Below you will find non-exhaustive description of the existing environment by pr
 
     Behavior of a particular script type can be be adjusted in AM console at Configure > Global Services > Scripting > Secondary Configurations > _Server-Side Script Type_.
 
-    Scripts included in the default AM configuration can serve as a great source of example scripting for the script types supported in AM.
+    Scripts included in the default AM configuration can serve as a great source of example scripting for the script types supported in AM. The scripts can be found in the AM console under Realms > _Realm Name_ > Scripts.
 
-    > The Decision node script for authentication trees example script is very basic; for this one, see the [example](#examples-ams-tree) provided in this writing. The default scripts can be found in the AM console under Realms > _Realm Name_ > Scripts.
+    > The Decision node script for authentication trees example script is very basic; for this one, see the [example](#examples-ams-tree) provided in this writing.
 
 ### <a id="overview-am-server-side"></a>AM > Server-side
 
@@ -182,9 +182,9 @@ Below you will find non-exhaustive description of the existing environment by pr
     * Access to managed, system, and configuration objects within the core IDM is abstracted via the `openidm` object.
     * Custom Java functionality:
         * Can be provided as a custom OSGi bundle under the `path/to/idm/instance/bundle` directory, or as a regular JAR file under `path/to/idm/instance/lib` directory.
-        * Once available, you can [use custom Java packages in scripts](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package), both JavaScript and Groovy.
-        * You can check for available classes and JAR files and use GroovyScriptLoader to [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
-    * You can [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts using the fully compliant CommonJS module implementation.
+        * Once available, you can [use custom Java packages in scripts](https://backstage.forgerock.com/knowledge/kb/book/b51015449#custom_package).
+        * You may need to modify `groovy.classpath` setting to [invoke a jar file from a Groovy script](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a38809746).
+    * You can [load JavaScript functions](https://backstage.forgerock.com/knowledge/kb/book/b51015449#a44445500) in scripts as CommonJS modules.
 * Management:
     * An individual script configuration can specify a script "source" as a single line or a script "file" reference. The configuration itself can be managed directly in the file system.
     * Scripts defined in separate files need to be placed in certain locations specified in [Script Configuration](https://backstage.forgerock.com/docs/idm/6.5/integrators-guide/index.html#script-config).
@@ -596,11 +596,12 @@ A multiline script can be defined in a configuration file as an array of strings
 
 ## <a id="comparison"></a>Comparison
 
+[Back to Contents](#contents)
+
 ### <a id="comparison-http-request"></a> HTTP Request
 
-As you could observe, the context of a server-side script largely depends on the functionality the script extends, although some global APIs are universally available within a product.
+The context of a server-side script largely depends on the functionality the script extends. Hence, making an outbound HTTP request from a server-side script will define unique environments for that particular use case, which is still a good illustration of what those differences can be.
 
-Some methods and data, provide same functionality but via different implementations. Consider, for example, making back-channel outbound HTTP call in all three products:
 
 ```groovy
 // AM
