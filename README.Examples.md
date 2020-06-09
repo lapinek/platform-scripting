@@ -147,7 +147,7 @@
 
     The authentication tree might look like the following:
 
-    <img src="README_files/am.authentication-tree.scripted-decision-module.png" alt="Authentication Tree with the Scripted Decision node." width="1024">
+    <img src="README_files/am.authentication-tree.scripted-decision-node.png" alt="Authentication Tree with the Scripted Decision node." width="1024">
 
     ### The First Scripted Decision Node
 
