@@ -52,7 +52,7 @@ Below, you will find non-exhaustive description of scripting functionality in th
 
 #### Points of Consideration:
 
-* Server-side scripts in AM can be written in [Groovy](https://www.groovy-lang.org/documentation.html) or JavaScript running on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). The 6.5 version of AM uses Groovy version 2.5.7 and Rhino version 1.7R4.
+* Server-side scripts in AM can be written in [Groovy](https://www.groovy-lang.org/documentation.html) or in JavaScript to run on [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino). The 6.5 version of AM uses Groovy version 2.5.7 and Rhino version 1.7R4.
 * The server-side scripts have global access to [AM 6.5.2.3 Public API](https://backstage.forgerock.com/docs/am/6.5/apidocs/index.html).
 
     Server-side _JavaScript_ requires the full path to a Java class or a  static method. An instance or a static method can be assigned to a JavaScript variable.

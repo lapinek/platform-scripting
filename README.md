@@ -3,11 +3,11 @@
 
 Three of ForgeRock Identity Platform products—[Access Management](https://www.forgerock.com/platform/access-management) (AM), [Identity Management](https://www.forgerock.com/platform/identity-management) (IDM), and [Identity Gateway](https://www.forgerock.com/platform/identity-gateway) (IG)—allow to extend their functionality with scripts written in JavaScript or Groovy and evaluated during the run time.
 
-The products, and sometimes frameworks within a product, define different environments for managing and executing scripts. As you move between these environments, it could be helpful to be aware of how your approach may change in performing a certain task. For this purpose, we will consider a common task of making an outbound HTTP request from a server-side script.
+The products, and sometimes frameworks within a product, define different environments for managing and executing scripts. As you move between these environments, you may change your approach in performing a certain task. To illustrate, we will consider a common task of making an outbound HTTP request from a server-side script.
 
-> Scripting is broadly used in the products and broadly covered across [ForgeRock Product Documentation](https://backstage.forgerock.com/docs/). There are many articles describing number of scripting applications, often in a context of a particular task and supplied with examples.
+> Scripting is broadly used in the products and broadly covered across [ForgeRock Product Documentation](https://backstage.forgerock.com/docs/). There are many articles describing scripting applications, often in a context of a particular task and supplied with examples.
 >
-> The [References](#references) section contains a collection of links to scripting docs; some of the relevant references will be also provided inline.
+> The [References](#references) section contains a collection of links to scripting docs; some of the relevant sources will be also referenced inline.
 > If you are unsure what scripting in ForgeRock products represents, see [Overview of Scripting Functionality](#overview).
 
 ## <a id="contents"></a>Contents
@@ -24,7 +24,7 @@ The products, and sometimes frameworks within a product, define different enviro
 
 [Back to Contents](#contents)
 
-The context of a server-side script is largely defined by the functionality the script extends, and making an outbound HTTP requests will denote some specifics for that particular use case. Being a part of global APIs, HTTP services can be used to demonstrate differences in scripting environments that all scripts in a given environment share.
+The context of a server-side script is largely defined by the functionality the script extends, and making an outbound HTTP requests will denote some specifics for that use case. Being a part of global APIs, HTTP services can be used to demonstrate differences in scripting environments that all scripts in a given environment share.
 
 ## <a id="making-http-request-am"></a>Making HTTP Request > AM
 
@@ -32,7 +32,7 @@ The context of a server-side script is largely defined by the functionality the 
 
 Scripts in AM are stored as a part of configuration data, not as separate files. They can be edited in the administrative UI under Realms > _Realm Name_ > Scripts, but cannot be updated real time in the file system.
 
-> In addition to the UI option, the [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter of the Development Guide describes two other ways to manage scripts in AM: via REST and command line interfaces, which could be effective in automated environments.
+> In addition to the UI option, the [Managing Scripts](https://backstage.forgerock.com/docs/am/6.5/dev-guide/#manage-scripts) chapter of the Development Guide describes two other ways to manage scripts in AM: via REST and command line interfaces, which may be more effective in automated environments.
 
 > One of the script types you can choose is `Client-side Authentication`. This type of script is executed in the user agent, a browser of sorts, and its runtime environment is not ForgeRock specific. A script of this type can only be used in [Authentication Chains and Modules](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#configure-authn-chains-modules), while [Authentication Trees](https://backstage.forgerock.com/docs/am/6.5/authentication-guide/index.html#sec-configure-authentication-trees) present more recent alternative for implementing an authentication flow. In the latter case, front-channel authentication can still be assisted with a client-side script, but the script is defined in an authentication node and implementation details are different. In either case, the script itself is written in client-side [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript), which you probably know and love, and we will leave the implementation details specific to front-channel authentication out of this writing.
 
