@@ -62,7 +62,7 @@ You can output all available bindings by using the [logger object methods](https
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 logger.error(Object.keys(this))
@@ -87,7 +87,7 @@ You may notice that some bindings are specific to the script type and some are p
 
 In JavaScript, `this` represents execution context, and you will see all variables defined in the top-level scope.
 
-> You can ignore the `context` top-level variable, for it is not a binding and is not useful in the context of this writing.
+> You can ignore the `context` top-level variable, for it is not a binding, nor is it used in the context of this writing.
 
 You can output the bindings with their respective values:
 
@@ -135,25 +135,82 @@ ERROR: idRepository: org.forgerock.openam.scripting.idrepo.ScriptIdentityReposit
 <br/>
 
 <details>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 ```groovy
 logger.error(binding.variables.toString())
 ```
 
-Initially, you may get an error due to scripting engine security settings, as described in [Language > Allowed Java Classes](#script-language-java-allow):
+Initially, you may get an error due to the scripting engine security settings, as described in [Language > Allowed Java Classes](#script-language-java-allow):
 
 ```
 ERROR: Script terminated with exception
 java.util.concurrent.ExecutionException: javax.script.ScriptException: javax.script.ScriptException: java.lang.SecurityException: Access to Java class "org.codehaus.groovy.jsr223.GroovyScriptEngineImpl$2" is prohibited.
 ```
 
-When `org.codehaus.groovy.jsr223.GroovyScriptEngineImpl$2` and `org.forgerock.openam.scripting.ChainedBindings` are added to the allowed Java classes, you will be able to see the output. For a scripted decision example:
+When the reported `org.codehaus.groovy.jsr223.GroovyScriptEngineImpl$2` is added to the allowed Java classes, you will also need to add  `org.forgerock.openam.scripting.ChainedBindings` in order to see the output. For a scripted decision example:
 
-<!-- todo -->
 ```
 ERROR: [auditEntryDetail:null, httpClient:org.forgerock.openam.scripting.api.http.GroovyHttpClient@5e35260, requestParameters:[authIndexType:[service], authIndexValue:[scripted], realm:[/]], idRepository:org.forgerock.openam.scripting.idrepo.ScriptIdentityRepository@9ede4f7, realm:/, logger:com.sun.identity.shared.debug.Debug@7d6c1ced, callbacks:[], requestHeaders:[accept:[application/json, text/javascript, */*; q=0.01], accept-api-version:[protocol=1.0,resource=2.1], accept-encoding:[gzip, deflate], accept-language:[en-US], cache-control:[no-cache], connection:[keep-alive], content-length:[1914], content-type:[application/json], cookie:[amlbcookie=01], host:[openam.example.com:8080], origin:[http://openam.example.com:8080], referer:[http://openam.example.com:8080/openam/XUI/], user-agent:[Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36], x-nosession:[true], x-password:[anonymous], x-requested-with:[XMLHttpRequest], x-username:[anonymous]], transientState:[:], sharedState:[realm:/, authLevel:0, username:user.0]]
 ```
+
+To make this more readable, you can log out each variable individually:
+
+```groovy
+binding.variables.each { key, value -> logger.error(key + ": " + value)}
+```
+
+```
+ERROR: auditEntryDetail: null
+
+ERROR: idRepository: org.forgerock.openam.scripting.idrepo.ScriptIdentityRepository@27dabf86
+
+ERROR: realm: /
+
+ERROR: logger: com.sun.identity.shared.debug.Debug@7d6c1ced
+
+ERROR: callbacks: []
+
+ERROR: httpClient: org.forgerock.openam.scripting.api.http.GroovyHttpClient@36c87365
+
+ERROR: requestHeaders: [accept:[application/json, text/javascript, */*; q=0.01], accept-api-version:[protocol=1.0,resource=2.1], accept-encoding:[gzip, deflate], accept-language:[en-US], cache-control:[no-cache], connection:[keep-alive], content-length:[1914], content-type:[application/json], cookie:[amlbcookie=01], host:[openam.example.com:8080], origin:[http://openam.example.com:8080], pragma:[no-cache], referer:[http://openam.example.com:8080/openam/XUI/?service=scripted], user-agent:[Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36], x-nosession:[true], x-password:[anonymous], x-requested-with:[XMLHttpRequest], x-username:[anonymous]]
+
+ERROR: transientState: [:]
+
+ERROR: sharedState: [realm:/, authLevel:0, username:user.4]
+
+ERROR: requestParameters: [authIndexType:[service], authIndexValue:[scripted], realm:[/], service:[scripted]]
+```
+
+You can also add new lines to the output:
+
+```groovy
+def bindings = ""
+
+binding.variables.each {
+    key, value ->
+
+    bindings += key + ": " + value + "\n"
+}
+
+logger.error("Bindings: " + bindings)
+```
+
+```
+ERROR: Bindings:
+[CONTINUED]auditEntryDetail: null
+[CONTINUED]idRepository: org.forgerock.openam.scripting.idrepo.ScriptIdentityRepository@29fdc7f2
+[CONTINUED]realm: /
+[CONTINUED]logger: com.sun.identity.shared.debug.Debug@7d6c1ced
+[CONTINUED]callbacks: []
+[CONTINUED]httpClient: org.forgerock.openam.scripting.api.http.GroovyHttpClient@3290ae0d
+[CONTINUED]transientState: [:]
+[CONTINUED]sharedState: [realm:/, authLevel:0, username:user.4]
+[CONTINUED]requestHeaders: [accept:[application/json, text/javascript, */*; q=0.01], accept-api-version:[protocol=1.0,resource=2.1], accept-encoding:[gzip, deflate], accept-language:[en-US], cache-control:[no-cache], connection:[keep-alive], content-length:[2543], content-type:[application/json], cookie:[amlbcookie=01], host:[openam.example.com:8080], origin:[http://openam.example.com:8080], pragma:[no-cache], referer:[http://openam.example.com:8080/openam/XUI/?service=scripted], user-agent:[Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36], x-nosession:[true], x-password:[anonymous], x-requested-with:[XMLHttpRequest], x-username:[anonymous]]
+[CONTINUED]requestParameters: [authIndexType:[service], authIndexValue:[scripted], realm:[/], service:[scripted]]
+[CONTINUED]
+```
+
 </details>
 
 <br/>
@@ -163,7 +220,7 @@ When you know your bindings, you can also inspect them individually:
 <br/>
 
 <details open>
-<summary><strong>JavaScript or Groovy</strong>:</summary>
+<summary><strong>JavaScript or Groovy</strong></summary>
 
 ```javascript
 logger.error("scopes: " + scopes)
@@ -205,18 +262,18 @@ ERROR: ReferenceError: "existingSession" is not defined.
 . . .
 ```
 
-In other environments, the logs data may be sent to the standard output or, as in the case of ForgeRock Identity Cloud (Identity Cloud), exposed via REST. Follow the deployment specific documentation in order to access AM debugging output. For example:
+In other environments, the logs data may be sent to the standard output or, as in the case of ForgeRock Identity Cloud (Identity Cloud), exposed via REST. Follow the deployment-specific documentation in order to access AM debugging output. For example:
 
 * [ForgeOps Docs > CDK Troubleshooting > Pod Descriptions and Container Logs](https://backstage.forgerock.com/docs/forgeops/7/devops-troubleshoot.html#devops-troubleshoot-k8s-pods)
 
 * [Identity Cloud Docs > Your Tenant > View Audit Logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html)
 
-When you know where to find the logs and [how to control the level of the debug output](https://ea.forgerock.com/docs/am/maintenance-guide/debug-logging.html), you can inspect the debug data for possible reasons your script is not working or/and for the information it outputs. As illustrated in the [Bindings](#script-bindings) chapter, with the [logger methods](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html) you can proactively output the script context. You can also output result of an operation, content of an object, a marker, etc.—anything that could be converted into a string (explicitly in Groovy or implicitly in JavaScript). For example, the content of the `sharedState` binding in the scripted decision context at some point of the authentication process:
+When you know where to find the logs and [how to control the level of the debug output](https://ea.forgerock.com/docs/am/maintenance-guide/debug-logging.html), you can inspect the debug data for possible reasons your script is not working and/or for the information it outputs. As illustrated in the [Bindings](#script-bindings) chapter, with the [logger methods](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html), you can proactively output the script context. You can also output result of an operation, content of an object, a marker, etc., anything that could be converted into a string (explicitly in Groovy or implicitly in JavaScript). For example, the content of the `sharedState` binding in the scripted decision context at some point of the authentication process:
 
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 logger.error(sharedState)
@@ -230,7 +287,7 @@ ERROR: sharedState: {realm=/, authLevel=0, username=user.0, FirstName=Olaf, Last
 <br/>
 
 <details>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 <br>
 
@@ -267,7 +324,7 @@ You can also try and catch and output an error:
 <br/>
 
 <details open>
-<summary><strong>JavaScript or Groovy</strong>:</summary>
+<summary><strong>JavaScript or Groovy</strong></summary>
 
 ```javascript
 try {
@@ -292,14 +349,14 @@ ERROR: Exception occurred: java.lang.SecurityException: Access to Java class "Sc
 
 <br/>
 
-While debugging, you don't always have to rely on the logs. You can save your error in an available object and carry on with the execution. Then, you may be able to display the saved error(s) to the end user (you, in this case) if that is supported by the UI.
+While debugging, you don't always have to rely on the logs. You can save your error in an available object and carry on with the execution. Then, you may be able to have the saved error(s) included in the browser response, or even to display them to the end user (you, in this case), if that is supported by the UI.
 
 For example, in the scripted decision environment, you can preserve debugging information in the `sharedState` object, which persists during entire authentication session, across scripted decision nodes in the authentication tree. In this particular case, there is a designated key for storing error message(s), "errorMessage", that is respected by the core AM functionality:
 
 <br/>
 
 <details open>
-<summary><strong>JavaScript or Groovy</strong>:</summary>
+<summary><strong>JavaScript or Groovy</strong></summary>
 
 ```javascript
 try {
@@ -341,7 +398,7 @@ If you need to terminate the tree with a specific message, you can override the 
 <br/>
 
 <details open>
-<summary><strong>JavaScript or Groovy</strong>:</summary>
+<summary><strong>JavaScript or Groovy</strong></summary>
 
 ```javascript
 action = org.forgerock.openam.auth.node.api.Action.goTo("false").withErrorMessage("A terrible error occurred!").build()
@@ -367,7 +424,7 @@ Logs provide a useful context for exceptions and are the main source of debuggin
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 var request = new org.forgerock.http.protocol.Request()
@@ -378,12 +435,12 @@ var request = new org.forgerock.http.protocol.Request()
 
 In this case, an instance of a class is assigned to a JavaScript variable, but there are other ways of extending server-side scripts with Java, which will be discussed in [Language > Scripting Java](#script-language-java-import).
 
-Before sending a request, you can use a number of methods described in [the public Java doc](https://backstage.forgerock.com/docs/am/7/apidocs/org/forgerock/http/protocol/Request.html) to inspect and modify the request object. For example, you can warn the server via the request headers that you are POSTing a JSON content, or/and you can authorize the request with an access token (obtained separately):
+Before sending a request, you can use a number of methods described in [the public Java doc](https://backstage.forgerock.com/docs/am/7/apidocs/org/forgerock/http/protocol/Request.html) to inspect and modify the request object. For example, you can warn the server via the request headers that you are POSTing a JSON content, and/or you can authorize the request with an access token (obtained separately):
 
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 var request = new org.forgerock.http.protocol.Request()
@@ -403,7 +460,7 @@ request.getEntity().setString(JSON.stringify(requestBodyJson))
 <br/>
 
 <details>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 <br/>
 
@@ -438,7 +495,7 @@ In the following example, we check if the IP derived from the client side (there
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 var failure = true
@@ -466,7 +523,7 @@ if (response.getStatus().getCode() === 200) {
 <br/>
 
 <details>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 <br/>
 
@@ -533,7 +590,7 @@ Consider examples in the [Scripted Decision Node](#script-type-scripted-decision
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 action = org.forgerock.openam.auth.node.api.Action.goTo("true").putSessionProperty("customKey", "customValue").build()
@@ -543,7 +600,7 @@ action = org.forgerock.openam.auth.node.api.Action.goTo("true").putSessionProper
 <br/>
 
 <details>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 ```groovy
 
@@ -552,7 +609,7 @@ import org.forgerock.openam.auth.node.api.Action
 action = Action.goTo("true").putSessionProperty("customKey", "customValue").build()
 ```
 
-You can also use the fully qualified name in Groovy:
+In Groovy, you can use the fully qualified name as well:
 
 ```groovy
 action = org.forgerock.openam.auth.node.api.Action.goTo("true").putSessionProperty("customKey", "customValue").build()
@@ -561,12 +618,12 @@ action = org.forgerock.openam.auth.node.api.Action.goTo("true").putSessionProper
 
 <br/>
 
-If you have to reference an object many times, using the fully qualified name can quickly make it crowded and hard to read in the script editor. As an alternative, a reference to a package, a static method, and sometimes to an instance of a class can be assigned to a variable:
+If you have to reference an object many times, using the fully qualified name can quickly make it crowded and hard to read in the script editor. As an alternative, a reference to a package, a static method, and sometimes an instance of a class can be assigned to a variable:
 
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 var callback = javax.security.auth.callback // Package.
@@ -597,7 +654,7 @@ You can also use [JavaImporter Constructor](https://developer.mozilla.org/en-US/
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 var fr = JavaImporter(
@@ -633,7 +690,7 @@ In general, [use of the _with_ statement in JavaScript is not recommended](https
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 var fr = JavaImporter(
@@ -652,6 +709,80 @@ if (callbacks.isEmpty()) {
     action = fr.Action.goTo("true").build();
 }
 ```
+</details>
+
+<br/>
+
+Another potential benefit of using `JavaImporter` could be more discernible errors.
+
+For example, [com.sun.identity.idm.IdUtils](https://backstage.forgerock.com/docs/am/7/apidocs/com/sun/identity/idm/IdUtils.html) is not currently allowed by default in AM 7. If you attempt to call its `getIdentity` method with the full path inline, or by assigning either the class or the method reference to a variable, you may receive somewhat misleading errors:
+
+<br/>
+
+<details open>
+<summary><strong>JavaScript</strong></summary>
+
+```javascript
+var username = "user.0"
+var realm = "/"
+
+var IdUtils = com.sun.identity.idm.IdUtils
+var getIdentity = com.sun.identity.idm.IdUtils.getIdentity
+
+try {
+    var id = com.sun.identity.idm.IdUtils.getIdentity(username, realm)
+} catch (e) {
+ 	logger.error(e)
+}
+
+try {
+    var id = IdUtils.getIdentity(username, realm)
+} catch (e) {
+ 	logger.error(e)
+}
+
+try {
+    var id = getIdentity(username, realm)
+} catch (e) {
+ 	logger.error(e)
+}
+```
+
+```
+ERROR: TypeError: Cannot call property getIdentity in object [JavaPackage com.sun.identity.idm.IdUtils]. It is not a function, it is "object".
+
+ERROR: TypeError: Cannot call property getIdentity in object [JavaPackage com.sun.identity.idm.IdUtils]. It is not a function, it is "object".
+
+ERROR: TypeError: getIdentity is not a function, it is object.
+```
+
+</details>
+
+<br/>
+
+With `JavaImporter`, the error will immediately indicate the class unavailability; thus, hinting to possible restrictions in the scripting engine configuration:
+
+<br/>
+
+<details open>
+<summary><strong>JavaScript</strong></summary>
+
+```javascript
+var fr = JavaImporter(
+  	com.sun.identity.idm.IdUtils
+)
+
+try {
+    var id = fr.IdUtils.getIdentity(username, realm)
+} catch (e) {
+ 	logger.error(e)
+}
+```
+
+```
+TypeError: Cannot call method "getIdentity" of undefined
+```
+
 </details>
 
 <br/>
@@ -725,7 +856,7 @@ For example, you may need to check if a binding is available in a Groovy script:
 <br/>
 
 <details open>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 ```groovy
 if (binding.hasVariable("existingSession")) {
@@ -755,7 +886,7 @@ Or maybe, you want to list all available bindings in Groovy:
 <br/>
 
 <details open>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 ```groovy
 logger.error(binding.variables.toString())
@@ -781,7 +912,7 @@ And if you try to catch a [GroovyRuntimeException](http://docs.groovy-lang.org/l
 <br/>
 
 <details open>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 ```groovy
 try {
@@ -799,7 +930,7 @@ Another example of differences in the requirements between the scripting engines
 <br/>
 
 <details open>
-<summary><strong>JavaScript or Groovy</strong>:</summary>
+<summary><strong>JavaScript or Groovy</strong></summary>
 
 ```javascript
 var username = sharedState.get("username")
@@ -828,12 +959,12 @@ But again, that exception is only handled in Groovy if `java.lang.ArrayIndexOutO
 
 None of the aforementioned classes would need to be explicitly imported nor allowed for JavaScript's `typeof existingSession` and `try { . . . } catch (e) {}` statements.
 
-There might be cases when you need to import a Java class in JavaScript. For example, your data could be returned in `char[]`, as in the case of `javax.security.auth.callback.PasswordCallback.getPassword()`. In order to convert the value into a String, you will need to import the `java.lang.String` class. This class, however, is allowed by default for all server-side scripts in AM 7. An example from [scripted decision callbacks](#script-type-scripted-decision-node-bindings-callbacks):
+There might be cases when you need to import a common Java class in JavaScript. For example, your data could be returned in `char[]`, as in the case of `javax.security.auth.callback.PasswordCallback.getPassword()`. In order to convert the value into a String, you will need to import the `java.lang.String` class. This class, however, is allowed by default for all server-side scripts in AM 7. An example from [scripted decision callbacks](#script-type-scripted-decision-node-bindings-callbacks):
 
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 var fr = JavaImporter(
@@ -874,7 +1005,7 @@ Concatenating strings with the `+` operator may require the resulting string to 
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 var message = ""
@@ -975,7 +1106,7 @@ You may also encounter Strict Equality Comparison not working in some cases. For
 <br/>
 
 <details open>
-<summary><strong>JavaScript</strong>:</summary>
+<summary><strong>JavaScript</strong></summary>
 
 ```javascript
 var authIndexType = "service"
@@ -1054,7 +1185,7 @@ At the end of a script execution, the script can communicate back to its node by
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     if ( . . . ) {
@@ -1074,7 +1205,7 @@ At the end of a script execution, the script can communicate back to its node by
     > <br/>
     >
     > <details open>
-    > <summary><strong>JavaScript</strong>:</summary>
+    > <summary><strong>JavaScript</strong></summary>
     >
     > ```javascript
     > /*
@@ -1097,7 +1228,7 @@ At the end of a script execution, the script can communicate back to its node by
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     var goTo = org.forgerock.openam.auth.node.api.Action.goTo
@@ -1109,7 +1240,7 @@ At the end of a script execution, the script can communicate back to its node by
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     var goTo = org.forgerock.openam.auth.node.api.Action.goTo
@@ -1121,7 +1252,7 @@ At the end of a script execution, the script can communicate back to its node by
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     var fr = JavaImporter(
@@ -1135,7 +1266,7 @@ At the end of a script execution, the script can communicate back to its node by
     <br/>
 
     <details>
-    <summary><strong>Groovy</strong>:</summary>
+    <summary><strong>Groovy</strong></summary>
 
     ```groovy
     import org.forgerock.openam.auth.node.api.Action
@@ -1151,7 +1282,7 @@ At the end of a script execution, the script can communicate back to its node by
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     action = Action.goTo("false").build() // Takes effect.
@@ -1181,7 +1312,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     var password
@@ -1218,7 +1349,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     logger.error(sharedState.toString())
@@ -1233,12 +1364,12 @@ The script context is provided via its bindings. The bindings also serve as the 
 
     What you see will depend on what the preceding nodes in the tree have already added to `sharedState`. In the example above, only the [Username Collector](https://backstage.forgerock.com/docs/am/7/authentication-guide/auth-node-configuration-hints.html#auth-node-username-collector) node was used thus far, and predictably, it had captured the username.
 
-    An individual property could then be obtained or/and inspected via the binding's `get(String key)` method:
+    An individual property could then be obtained and/or inspected via the binding's `get(String key)` method:
 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     var username = sharedState.get("username")
@@ -1254,7 +1385,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     try {
@@ -1288,7 +1419,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     sharedState.put("successUrl", "http://openam.example.com:8080/openam/XUI/?authIndexType=service&authIndexValue=scripted&test=successUrl#dashboard/")
@@ -1309,8 +1440,30 @@ The script context is provided via its bindings. The bindings also serve as the 
 
     This means that the data stored in `transientState` exists only until the next response is sent to the user, _unless_ the secret data is requested later in the authentication tree, _between_ the responses (in a conventional term: "across a callback boundary").
 
-    <!-- todo -->
     > `sharedState` exists unconditionally during the lifetime of the authentication session and could be returned to the user in an unencrypted JWT in each response during the authentication flow.
+    > <details>
+    > <summary>Details</summary>
+    > If you choose to save the authentication session state in JWT (under Realms > _Realm Name_ > Authentication > Settings > Trees > Authentication session state management scheme), and set CONFIGURE > Global Services > Session > Client-based Sessions > Encryption Algorithm to “NONE”, your authentication state will be included in encoded but unencrypted form in every (callback) response to the user agent:
+    >
+    > ```json
+    > {
+    >   "state": "valid",
+    >    "maxTime": 5,
+    >    "maxIdle": 5,
+    >    "maxCaching": 3,
+    >    "sessionType": "USER",
+    >    "lastActivityTime": 1606271524,
+    >    "jti": "b05bfee4-cd98-41d4-99d1-6417d073cfc1",
+    >    "exp": 1606271824,
+    >    "props": {
+    >      "treeState": "{\"sharedState\":{\"realm\":\"/\",\"authLevel\":0,\"username\":\"user.0\"},\"secureState\":{},\"currentNodeId\":\"06bc8627-1ff5-44d2-bdc4-7cffeeac7729\",\"sessionProperties\":{},\"sessionHooks\":[],\"webhooks\":[]}",
+    >      "AMCtxId": "f66fd450-01ce-4652-b3f6-2894e9a0344a-63080",
+    >      "amlbcookie": "01"
+    >    }
+    > }
+    </details>
+
+    <br/>
 
     To retrieve a key from `transientState` use its `get(String key)` method, and to populate a key use `put(String key, V value)`.
 
@@ -1319,7 +1472,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     var password = transientState.get("password")
@@ -1333,7 +1486,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     transientState.put("sensitiveKey", "sensitiveValue")
@@ -1348,14 +1501,14 @@ The script context is provided via its bindings. The bindings also serve as the 
 
     [Back to Contents](#contents)
 
-    The examples provided in [Scripted Decision Node API Functionality > Using Callbacks](https://backstage.forgerock.com/docs/am/7/authentication-guide/scripting-api-node.html#scripting-api-node-callbacks) highlight the general idea: a node, via its script, can send information to and get input from the user or/and retrieve data about the user agent. When the collected data is submitted back to the server-side script, it could be stored in `sharedState` or used directly by the script.
+    The examples provided in [Scripted Decision Node API Functionality > Using Callbacks](https://backstage.forgerock.com/docs/am/7/authentication-guide/scripting-api-node.html#scripting-api-node-callbacks) highlight the general idea: a node, via its script, can send information to and get input from the user and/or retrieve data about the user agent. When the collected data is submitted back to the server-side script, it could be stored in `sharedState` or used directly by the script.
 
     You can use interactive callbacks to request input from the user. For example, [PasswordCallback](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/javax/security/auth/callback/PasswordCallback.html) could be used in your scripted decision for capturing a secret value:
 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     var fr = JavaImporter(
@@ -1385,7 +1538,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details>
-    <summary><strong>Groovy</strong>:</summary>
+    <summary><strong>Groovy</strong></summary>
 
     ```groovy
     import org.forgerock.openam.auth.node.api.Action // 1
@@ -1425,7 +1578,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     var fr = JavaImporter(
@@ -1475,7 +1628,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details>
-    <summary><strong>Groovy</strong>:</summary>
+    <summary><strong>Groovy</strong></summary>
 
     ```groovy
     import org.forgerock.openam.auth.node.api.Action // 1
@@ -1533,7 +1686,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     var fr = JavaImporter(
@@ -1593,7 +1746,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details>
-    <summary><strong>Groovy</strong>:</summary>
+    <summary><strong>Groovy</strong></summary>
 
     ```groovy
     import org.forgerock.openam.auth.node.api.Action
@@ -1655,7 +1808,7 @@ The script context is provided via its bindings. The bindings also serve as the 
 
         The client-side scripting environment is defined by the user browser and is not specific to ForgeRock.
 
-        You can use your browser console for _writing_ scripts in the user agent, which will allow for some immediate feedback. Then, you can multiline the script by wrapping it with `'''` in Groovy and with `;` or/and `\n\` in JavaScript.
+        You can use your browser console for _writing_ scripts in the user agent, which will allow for some immediate feedback. Then, you can multiline the script by wrapping it with `'''` in Groovy and with `;` and/or `\n\` in JavaScript.
 
         > There may be custom nodes proving amenities for editing the client-side portion of the code. For example: [Client Script Auth Tree Node](https://backstage.forgerock.com/marketplace/api/catalog/entries/AWAm-FCxfKvOhw29pnIp).
 
@@ -1715,7 +1868,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     var ip = JSON.parse(sharedState.get("clientScriptOutputData")).ip
@@ -1725,7 +1878,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details>
-    <summary><strong>Groovy</strong>:</summary>
+    <summary><strong>Groovy</strong></summary>
 
     ```groovy
     import groovy.json.JsonSlurper
@@ -1762,7 +1915,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     var username = sharedState.get("username")
@@ -1781,7 +1934,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details>
-    <summary><strong>Groovy</strong>:</summary>
+    <summary><strong>Groovy</strong></summary>
 
     ```groovy
 
@@ -1801,7 +1954,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     var username = sharedState.get("username")
@@ -1844,7 +1997,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     logger.error(realm)
@@ -1867,7 +2020,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     var service
@@ -1884,7 +2037,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     * In JavaScript, the values stored in `requestParameters` have `typeof` object and represent the `java.lang.String` class; hence, you need to convert the parameter value to String in order to use Strict Equality Comparison.
 
     <details>
-    <summary><strong>Groovy</strong>:</summary>
+    <summary><strong>Groovy</strong></summary>
 
     ```groovy
 
@@ -1908,7 +2061,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript</strong>:</summary>
+    <summary><strong>JavaScript</strong></summary>
 
     ```javascript
     if (typeof existingSession !== 'undefined') {
@@ -1922,7 +2075,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details>
-    <summary><strong>Groovy</strong>:</summary>
+    <summary><strong>Groovy</strong></summary>
 
     ```groovy
     if (binding.hasVariable("existingSession")) {
@@ -1940,7 +2093,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     <br/>
 
     <details open>
-    <summary><strong>JavaScript or Groovy</strong>:</summary>
+    <summary><strong>JavaScript or Groovy</strong></summary>
 
     ```javascript
     try {
@@ -1973,7 +2126,6 @@ The script context is provided via its bindings. The bindings also serve as the 
 
     For more information on the session upgrade subject, see [Sessions Guide > Session Upgrade](https://backstage.forgerock.com/docs/am/7/sessions-guide/session-upgrade.html#session-upgrade).
 
-<!-- todo -->
 ## <a id="fidc-environment" name="fidc-environment"></a>ForgeRock Identity Cloud (Identity Cloud)
 
 [Back to Contents](#contents)
@@ -1981,6 +2133,8 @@ The script context is provided via its bindings. The bindings also serve as the 
 Due to its cloud based, multi-tenant nature, the Identity Cloud environment introduces its own specifics to the scripting provisions in AM 7.
 
 ### <a id="fidc-script-debug-logging" name="fidc-script-debug-logging"></a>Debug Logging
+
+[Back to Contents](#contents)
 
 [Identity Cloud Docs > Your Tenant > View Audit Logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html) outlines general idea on how logs produced in Identity Cloud could be viewed over its REST API.
 
@@ -2032,7 +2186,60 @@ As shown in Identity Cloud docs, the logs come in a form of JSON, with each log 
 }
 ```
 
-In a [Ruby script courtesy of Beau Croteau and Volker Scheuber](README_files/tail.rb), the [tailing logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#tailing_logs) procedure is automated and imitates a regular `tail -f` in the terminal. Then, the output may be processed with command-line tools of your choice.
+In a Ruby script below, courtesy of Beau Croteau and Volker Scheuber, the [tailing logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#tailing_logs) procedure is automated and imitates a regular `tail -f` in the terminal.
+
+<details open>
+<summary><strong>Ruby</strong></summary>
+
+```ruby
+# Specify the full base URL of the FIDC service.
+host="https://your-tenant.forgeblocks.com"
+
+# Specify the log API key and secret
+api_key_id="aaa2...219"
+api_key_secret="56ce...1ada1"
+
+# Available sources are listed below. Uncomment the source you want to use. For development and debugging use "am-core" and "idm-core" respectively:
+# source="am-access"
+# source="am-activity"
+# source="am-authentication"
+# source="am-config"
+source="am-core"
+# source="am-everything"
+# source="ctsstore"
+# source="ctsstore-access"
+# source="ctsstore-config-audit"
+# source="ctsstore-upgrade"
+# source="idm-access"
+# source="idm-activity"
+# source="idm-authentication"
+# source="idm-config"
+# source="idm-core"
+# source="idm-everything"
+# source="idm-sync"
+# source="userstore"
+# source="userstore-access"
+# source="userstore-config-audit"
+# source="userstore-ldif-importer"
+# source="userstore-upgrade"
+
+require 'pp'
+require 'json'
+
+prc=""
+while(true) do
+  o=`curl -s --get --header 'x-api-key: #{api_key_id}' #{prc} --header 'x-api-secret: #{api_key_secret}' --data 'source=#{source}' "#{host}/monitoring/logs/tail"`
+  obj=JSON.parse(o)
+  obj["result"].each{|r|
+    pp r["payload"]
+  }
+  prc="--data '_pagedResultsCookie=#{obj["pagedResultsCookie"]}'"
+  sleep 10
+end
+```
+</details>
+
+Then, the output may be processed with command-line tools of your choice.
 
 For example, you can filter the output and change its presentation with [jq](https://stedolan.github.io/jq/tutorial/). To prepare the output content for the tool, `print` the payload and use `to_json` to make it a stringified JSON:
 
@@ -2074,7 +2281,7 @@ For example, the `OAuth2 Access Token Modification Script` script template comes
 <br/>
 
 <details open>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 ```groovy
 /*
@@ -2100,7 +2307,7 @@ Another example would be attempting to use `try/catch` block in a Groovy script:
 <br/>
 
 <details open>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 ```groovy
 try {
@@ -2124,7 +2331,7 @@ Similarly, a runtime exception:
 <br/>
 
 <details open>
-<summary><strong>Groovy</strong>:</summary>
+<summary><strong>Groovy</strong></summary>
 
 ```groovy
 try {
@@ -2147,7 +2354,77 @@ Access to Java class \"groovy.lang.MissingMethodException\" is prohibited.
 
 [Back to Contents](#contents)
 
-The Identity Store configuration in AM is not exposed in Identity Cloud; hence, you cannot easily verify what attributes in the identity store are accessible from the scripts. In addition, attribute naming in AM and IDM (which for IDM can be found under Managed Objects configuration) is inconsistent, so the former cannot be derived from the latter. This is a [known issue](https://backstage.forgerock.com/docs/idcloud/latest/paas/known-issues/fraas-4585.html), which provides a convenient lookup table as a temporary remedy.
+An Identity Cloud tenant is deployed in platform mode with an identity repository shared between AM and ForgeRock Identity Management (IDM).
+
+The Identity Store configuration in AM is not exposed in Identity Cloud; hence, it may not be obvious that the user search attribute is not `uid`. This means that, in the scripted decision context, you cannot pass username into methods of the `idRepository` object. Instead, you need to identify users with their IDM's object ID, which corresponds to the `_id` attribute value.
+
+In an environment integrated with IDM, as in the case of Identity Cloud, you can utilize [Identify Existing User Node](https://backstage.forgerock.com/docs/am/7/authentication-guide/auth-node-configuration-hints.html#auth-node-identify-existing-user) for looking up a user by an attribute, according to the `Identity Object` you had chosen for your authentication Journey. For example, you can place this node after Username Collector:
+
+<img alt="Platform Admin, Authentication Journey with Identify Existing User and Scripted Decision nodes" src="README_files/Platform.Authentication-Journey.New.png" width="490">
+
+<br/>
+<br/>
+
+<img alt="Platform Admin, Authentication Journey with Identify Existing User and Scripted Decision nodes" src="README_files/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.png" width="900">
+
+Doing so will save the `_id` property in the `sharedState` object, and let it use its value as the user identifier in the `idRepository` methods:
+
+<br/>
+
+<details open>
+<summary><strong>JavaScript or Groovy</strong></summary>
+
+```javascript
+logger.error("sharedState: " + sharedState)
+
+var username = sharedState.get("_id")
+var attribute = "mail"
+
+logger.error(idRepository.getAttribute(username, attribute).toString())
+```
+
+If you use `jq` to filter and format stringified JSON from the logs, as described in [ForgeRock Identity Cloud > Debug Logging](#fidc-script-debug-logging), the output will look similar to the following:
+
+```
+$ node tail.am-core.js | jq '. | select(objects) | select(has("exception") or (.logger | test("scripts."))) | {logger: .logger, message: .message, timestamp: .timestamp, exception: .exception}'
+```
+
+```json
+{
+  "logger": "scripts.AUTHENTICATION_TREE_DECISION_NODE.bbf4feef-2bfe-46b7-824f-f632f7de426f",
+  "message": "sharedState: {realm=/alpha, authLevel=0, username=user.0, _id=d7eed43d-ab2c-40be-874d-92571aa17107}",
+  "timestamp": "2020-11-29T19:34:39.882Z",
+  "exception": null
+}
+{
+  "logger": "scripts.AUTHENTICATION_TREE_DECISION_NODE.bbf4feef-2bfe-46b7-824f-f632f7de426f",
+  "message": "[user.0@e.com]",
+  "timestamp": "2020-11-29T19:34:39.884Z",
+  "exception": null
+}
+```
+</details>
+
+<br/>
+
+Adding an `Identifier` to the `Identify Existing User` configuration will put `objectAttributes` property into the `sharedState` object, and populate it with the specified attribute, which may be required by other IDM nodes in platform mode:
+
+<img alt="Identify Existing User Node Configuration" src="README_files/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.Configuration.png" width="490">
+
+```json
+{
+  "logger": "scripts.AUTHENTICATION_TREE_DECISION_NODE.bbf4feef-2bfe-46b7-824f-f632f7de426f",
+  "message": "sharedState: {realm=/alpha, authLevel=0, username=user.0, _id=d7eed43d-ab2c-40be-874d-92571aa17107, objectAttributes={userName=user.0}}",
+  "timestamp": "2020-11-29T20:00:56.252Z",
+  "exception": null
+}
+```
+
+Another consequence of the Identity Store configuration not being exposed in the AM console is that you cannot verify which attributes in the identity store are accessible from the scripts. In addition, attribute naming in AM and IDM is inconsistent, so the former cannot be derived from the latter. This is a [known issue](https://backstage.forgerock.com/docs/idcloud/latest/paas/known-issues/fraas-4585.html), which provides a convenient lookup table in its Workaround section as a temporary remedy.
+
+> You can see IDM attributes in the Platform Admin under:
+> * Native Consoles > Identity Management > CONFIGURE > Managed Objects > _MANAGED OBJECT_
+> * Identities > Manage > _Realm Name_ Users > _userName_ > Raw JSON
 
 ### <a id="fidc-script-extended" name="fidc-script-extended"></a>Extended Functionality
 
