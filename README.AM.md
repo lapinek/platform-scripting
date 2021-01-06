@@ -52,10 +52,10 @@ Futhermore, the environment in which AM is deployed may affect the configuration
             * [Error Message](#script-type-scripted-decision-node-debugging-error-message)
     * [OAuth2 Access Token Modification](#script-type-oauth2-access-token-modification)
         * [Bindings](#script-type-oauth2-access-token-modification-bindings)
-            * [logger](#script-type-oauth2-access-token-modification-bindings-logger)
             * [accessToken](#script-type-oauth2-access-token-modification-bindings-access-token)
             * [scopes](#script-type-oauth2-access-token-modification-bindings-scopes)
             * [identity](#script-type-oauth2-access-token-modification-bindings-identity)
+            * [logger](#script-type-oauth2-access-token-modification-bindings-logger)
             * [httpClient](#script-type-oauth2-access-token-modification-bindings-httpclient)
             * [session](#script-type-oauth2-access-token-modification-bindings-session)
 * [ForgeRock Identity Cloud](#fidc-environment)
@@ -229,7 +229,7 @@ ERROR: sharedState: [realm:/, authLevel:0, username:user.0]
 ERROR: requestParameters: [authIndexType:[service], authIndexValue:[scripted], realm:[/], service:[scripted]]
 ```
 
-Or, you cans add new lines to the output:
+Or, you can add new lines to the output:
 
 ```groovy
 def bindings = ""
@@ -490,7 +490,7 @@ While debugging, you don't always have to rely on the logs. You can save your er
 
 For example, in the scripted decision environment, you can include debugging information in a browser response with the help of a special binding, `callbacks`; or, you can preserve it in a custom error message that will be displayed at the end of an unsuccessful authentication. Examples of these approaches could be found in the [Scripted Decision Node > Debugging](#script-type-scripted-decision-node-debugging) section of this document.
 
-Logs provide a useful context for exceptions and are the main source of debugging information. On the other hand, saving error messages in an available binding and displaying their content on the client side can help in quick evaluation of the scripting functionality, and doing so does not require direct access to the logs nor the efforts for obtaining and filtering them. This may prove useful in environments similar in this regard to [ForgeRock Identity Cloud](https://backstage.forgerock.com/docs/idcloud/latest/index.html).
+Logs provide a useful context for exceptions and are the main source of debugging information. On the other hand, saving error messages in an available binding and displaying their content on the client side can help you quickly evaluate the scripting functionality, and doing so does not require direct access to the logs nor the efforts for obtaining and filtering them. This may prove useful in environments similar in this regard to [ForgeRock Identity Cloud](https://backstage.forgerock.com/docs/idcloud/latest/index.html).
 
 ## <a id="script-accessing-http-services" name="script-accessing-http-services"></a>Accessing HTTP Services
 
@@ -640,7 +640,7 @@ It is worth reminding that `httpClient` requests are synchronous and blocking un
 
 You can, however, specify a timeout for the script execution in the AM console under Configure > Global Services > Scripting > Secondary Configurations > _Script Type Name_ > Secondary Configurations > EngineConfiguration > Server-side Script Timeout. When the script timeout occurs, the script execution will stop, and the procedure the script is part of will fail.
 
-Alternatively, you may choose to allow HTTP requests to timeout, leave the Server-side Script Timeout at its default `0` (which means no timeout), or populate it with a high number, and catch unsuccessful requests. For an illustration, let's visit the Google web site over a port other than 443:
+Alternatively, you may choose to allow HTTP requests to timeout, leave the Server-side Script Timeout at its default `0` (which means no timeout), or populate it with a high number, and catch unsuccessful requests. For an illustration, let's visit the Google website over a port other than 443:
 
 <br/>
 
@@ -704,7 +704,7 @@ The scripting capabilities can be extended with [publicly available Java package
 
 The way underlying Java is employed in a script is different between the two scripting engines.
 
-Consider examples in the [Scripted Decision Node](#script-type-scripted-decision-node-action-examples) section of this writing. In both engines you can use a fully qualified class name inline:
+Consider examples in the [Scripted Decision Node](#script-type-scripted-decision-node-action-examples) section of this writing. In both engines, you can use a fully qualified class name inline:
 
 <br/>
 
@@ -718,7 +718,7 @@ action = org.forgerock.openam.auth.node.api.Action.goTo("true").putSessionProper
 
 <br/>
 
-If you have to reference an object many times, using the fully qualified name can quickly make it crowded and hard to read in the script editor. Groovy follows Java and allows for `import` statement:
+If you have to reference an object many times, using the fully qualified name can quickly make it crowded and hard to read in the script editor. Groovy follows Java and allows for an `import` statement:
 
 <br/>
 
@@ -830,7 +830,7 @@ if (callbacks.isEmpty()) {
 
 <br/>
 
-Another potential benefit of using `JavaImporter` could be more discernible errors it produces.
+Another potential benefit of using `JavaImporter` could be the more discernible errors it produces.
 
 For example, [com.sun.identity.idm.IdUtils](https://backstage.forgerock.com/docs/am/7/apidocs/com/sun/identity/idm/IdUtils.html) is not currently allowed by default in AM 7. If you attempt to call its `getIdentity` method with the full path inline, or by assigning either the class or the method reference to a variable, you may receive somewhat misleading errors:
 
@@ -904,7 +904,7 @@ TypeError: Cannot call method "getIdentity" of undefined
 
 <br/>
 
-Similarly, if you try to detect Rhino version in a script, you'll need to import the `org.mozilla.javascript.Context` class, which is not allowed in AM 7.0.0 by default. Assigning this class to a variable or calling it directly will produce "it is object" errors, and using `javaImporter` will show the class undefined:
+Similarly, if you try to detect Rhino version in a script, you'll need to import the `org.mozilla.javascript.Context` class, which is not allowed in AM 7.0.0 by default. Assigning this class to a variable or calling it directly will produce "it is object" errors, and using `javaImporter` will show the class as undefined:
 
 <br/>
 
@@ -1210,7 +1210,11 @@ But again, that exception is only handled in Groovy if `java.lang.ArrayIndexOutO
 
 However, sometimes, Groovy may allow for easier interaction with the underlying Java.
 
-There might be cases when you need to explicitly import a common Java class in JavaScript. For example, your data could be returned in `char[]`, as in the case of `javax.security.auth.callback.PasswordCallback.getPassword()`. In order to convert the value into a String, you will need to import the `java.lang.String` class. (This particular class is currently allowed by default for all server-side scripts in AM 7, and using it should not require changes in the scripting engine configuration.) An example from [scripted decision callbacks](#script-type-scripted-decision-node-bindings-callbacks):
+There might be cases when you need to additionally import a common Java class in JavaScript. For example, your data could be returned in `char[]`, as in the case of `javax.security.auth.callback.PasswordCallback.getPassword()`. In order to convert the value into a String, you will need to import the `java.lang.String` class.
+
+> This particular class is currently allowed by default for all server-side scripts in AM 7, and using it should not require changes in the scripting engine configuration.
+
+An example from [scripted decision callbacks](#script-type-scripted-decision-node-bindings-callbacks):
 
 <br/>
 
@@ -1229,7 +1233,7 @@ if (callbacks.isEmpty()) {
         new fr.PasswordCallback("password hint", false)
     ).build()
 } else {
-    transientState.put("password", fr.String(callbacks.get(0).getPassword())) // 2
+    transientState.put("password", fr.String(callbacks.get(0).getPassword())) // 1, 2
 
     action = fr.Action.goTo("true").build()
 }
@@ -1241,9 +1245,9 @@ if (callbacks.isEmpty()) {
 
 <br/>
 
-For another example, out of the box, you may use `getClass()` to find out what Java object a variable implements, as described in [Bindings](#script-bindings). In JavaScript, the alternative is checking the `class` property, and for doing so you'd need to allow `java.lang.Class`, which is explicitly _prohibited_ by default.
+For another example, out of the box, you may use `getClass()` to find out what Java object a variable implements, as described in [Bindings](#script-bindings). In JavaScript, the alternative is checking the object's `class` property, and for doing so you'd need to allow `java.lang.Class`, which is explicitly _prohibited_ by default.
 
-Iterating over an object might be easier in Groovy as well. For example, the `sharedState` object in a scripted decision node represents [java.util.LinkedHashMap](https://docs.oracle.com/javase/8/docs/api/java/util/LinkedHashMap.html). It's `forEach()` method does not work with the JavaScript syntax, but you could evaluate or process the content of `sharedState` dynamically by iterating over the list of the object keys:
+Iterating over an object might be easier in Groovy as well. For example, the `sharedState` object in a scripted decision represents [java.util.LinkedHashMap](https://docs.oracle.com/javase/8/docs/api/java/util/LinkedHashMap.html). Its `forEach()` method does not work with the JavaScript syntax, but you could evaluate or process the content of `sharedState` dynamically by iterating over the list of its keys:
 
 <br/>
 
@@ -1722,7 +1726,7 @@ The script context is provided via its bindings. The bindings also serve as the 
 
     <br/>
 
-    If the secret value _is_ required across requests, it will be "promoted" (that is, moved) into the tree's `secureState`, which is a special object that is always encrypted and is not to be accessed directly. Instead, if they were available in the scripting environment, you could use the TreeContext's [getState(String key)](https://backstage.forgerock.com/docs/am/7/apidocs/org/forgerock/openam/auth/node/api/TreeContext.html#getState(java.lang.String)) or [getTransientState(String key)](https://backstage.forgerock.com/docs/am/7/apidocs/org/forgerock/openam/auth/node/api/TreeContext.html#getTransientState(java.lang.String)) public methods, which first check for the key in `transientState` and then in `secureState`. At the time of this writing, neither of the methods nor a similar functionality is included in the scripting decision node bindings, but something to that effect [may be introduced](https://bugster.forgerock.org/jira/browse/OPENAM-16962) in later iterations of AM.
+    If the secret value _is_ required across requests, it will be "promoted" (that is, moved) into the tree's `secureState`, which is a special object that is always encrypted and is not to be accessed directly. Instead, if they were available in the scripting environment, you could use the TreeContext's [getState(String key)](https://backstage.forgerock.com/docs/am/7/apidocs/org/forgerock/openam/auth/node/api/TreeContext.html#getState(java.lang.String)) or [getTransientState(String key)](https://backstage.forgerock.com/docs/am/7/apidocs/org/forgerock/openam/auth/node/api/TreeContext.html#getTransientState(java.lang.String)) public methods, which first checks for the key in `transientState` and then in `secureState`. At the time of this writing, neither of the methods nor a similar functionality is included in the scripting decision node bindings, but something to that effect [may be introduced](https://bugster.forgerock.org/jira/browse/OPENAM-16962) in later iterations of AM.
 
     To retrieve a key from `transientState` use its `get(String key)` method, and to populate a key use `put(String key, V value)`.
 
@@ -2155,7 +2159,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     > {"ip":"65.113.98.10"}
     > ```
 
-    In a scripted decision node script, can also easily try a particular callback before using it in authentication node development, or employ callbacks to display intermediate debugging information as described in [Debugging > Callbacks](#script-type-scripted-decision-node-debugging-callbacks).
+    In a scripted decision node script, you can easily try a particular callback before using it in authentication node development, or employ callbacks to display intermediate debugging information as described in [Debugging > Callbacks](#script-type-scripted-decision-node-debugging-callbacks).
 
 * <a id="script-type-scripted-decision-node-bindings-idrepository" name="script-type-scripted-decision-node-bindings-idrepository"></a>`idRepository`, the object that provides access to the user identity data, as described in [Scripted Decision Node API Functionality > Accessing Profile Data](https://backstage.forgerock.com/docs/am/7/authentication-guide/scripting-api-node.html#scripting-api-node-id-repo).
 
