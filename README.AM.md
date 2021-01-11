@@ -6,19 +6,17 @@ This article aims to complement the currently available and ever-improving [offi
 
 > While developing scripts, also check for solutions in the constantly growing [ForgeRock Knowledge Base](https://backstage.forgerock.com/knowledge/search?q=am%20scripting).
 
-## <a id="contents" name="contents"></a>Contents
+The content is structured as an overview of scripting environment in AM. It starts with common components and gets into specifics when the script language, script type, or runtime conditions introduce them.
 
-This article is structured as an overview of scripting environment in AM. It starts with common components and gets into specifics when the script language, script type, or runtime conditions introduce them.
-
-> You can always return to the Contents by selecting the [Back to Contents](#contents) links provided at the beginning of each section in this document.
-
-The [Scripting API Functionality](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-functionality.html) available for a server-side script will depend on its application and context.
-
-All scripts in AM have access to [Debug Logging](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html) and [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-http-client.html).
+The [Scripting API Functionality](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-functionality.html) available for a server-side script will depend on its application and context. All scripts in AM have access to [Debug Logging](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html) and [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-http-client.html).
 
 When you create a script under Realms > _Realm Name_ > Scripts, however, you make choices that will have some additional effect on the functionality available from the script.
 
 Futhermore, the environment in which AM is deployed may affect the configuration and debugging options during script development.
+
+## <a id="contents" name="contents"></a>Contents
+
+> You can always return to the Contents by selecting the [Back to Contents](#contents) links provided at the beginning of each section in this document.
 
 * [Bindings](#script-bindings)
 * [Debug Logging](#script-debug-logging)
@@ -1442,7 +1440,7 @@ In addition, for the server-side scripts, access to the underlying Java classes 
 
 [Back to Contents](#contents)
 
-<img alt="AM Console, Authentication Tree with Username Collector and Scripted Decision nodes" src="README_files/AM.Authentication-Tree.Scripted-Decision.Username-Collector.png" width="512">
+<img alt="AM Console, Authentication Tree with Username Collector and Scripted Decision nodes" src="README_files/2020-11/AM.Authentication-Tree.Scripted-Decision.Username-Collector.png" width="512">
 
 #### <a id="script-type-scripted-decision-node-configuration" name="script-type-scripted-decision-node-configuration"></a>Configuration
 
@@ -1452,7 +1450,7 @@ AM serves as an authentication and authorization server, and the recommended aut
 
 In a scripted decision node configuration, you need to specify a server-side script to be executed, its possible outcomes, and all of the inputs required by the script and the outputs it is required to produce:
 
-<img alt="Scripted Decision Node Configuration" src="README_files/AM.Scripted-Decision.Configuration.png" width="192">
+<img alt="Scripted Decision Node Configuration" src="README_files/2020-11/AM.Scripted-Decision.Configuration.png" width="192">
 
 The `*` (wildcard) variable can be referenced in the script configuration to include all available inputs or outputs without verifying their presence in [Shared Tree State](https://backstage.forgerock.com/docs/am/7/auth-nodes/core-action.html#accessing-tree-state)—a special object that holds the current authentication state and allows for data exchange between otherwise stateless nodes in the authentication tree.
 
@@ -1470,7 +1468,7 @@ At the end of a script execution, the script can communicate back to its node by
 
     When the node execution completes, tree evaluation will continue along the path that matches the value of the outcome. For example, the expected outcome could be "true" or "false":
 
-    <img alt="Scripted Decision Node Outcome Paths" src="README_files/AM.Scripted-Decision.Outcomes.png">
+    <img alt="Scripted Decision Node Outcome Paths" src="README_files/2020-11/AM.Scripted-Decision.Outcomes.png">
 
     Then, the script can define its outcome by assigning a _String_ value to the `outcome` variable. For example:
 
@@ -1665,7 +1663,7 @@ The script context is provided via its bindings. The bindings also serve as the 
 
     In the example above, because the `getState` binding is not declared, JavaScript will produce the following message to be displayed on the login screen:
 
-    <img alt="Login Screen Custom Error Message" src="README_files/Login.errorMessage.png" width="381">
+    <img alt="Custom Error Message is displayed on the Login Screen" src="README_files/2020-11/Login.errorMessage.png" width="512">
 
     Which is a part of the failed authentication response returned to the user agent:
 
@@ -2482,7 +2480,66 @@ The `logger` object is your best debugging friend, but not the only one:
 
     [Back to Contents](#contents)
 
-    If you need an immediate feedback without completing the authentication journey, you can display the debugging content with a callback. For example, you can use [javax.security.auth.callback.TextOutputCallback](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/javax/security/auth/callback/TextOutputCallback.html):
+    If you need an immediate feedback without completing the authentication journey, you can display the debugging content with a callback.
+
+    For example, you can use [javax.security.auth.callback.TextOutputCallback](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/javax/security/auth/callback/TextOutputCallback.html). In a simplest case, you'd display the stringified content of an object:
+
+    <br/>
+
+    <details open>
+    <summary><strong>JavaScript</strong></summary>
+
+    ```javascript
+    var fr = JavaImporter(
+        org.forgerock.openam.auth.node.api.Action,
+        javax.security.auth.callback.TextOutputCallback
+    )
+
+    if (callbacks.isEmpty()) {
+        action = fr.Action.send(
+            new fr.TextOutputCallback(
+                fr.TextOutputCallback.ERROR,
+                sharedState
+            )
+        ).build()
+    } else {
+        action = fr.Action.goTo("true").build()
+    }
+    ```
+
+    <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.JavaScript.Simple.png" width="512">
+    </details>
+
+    <br/>
+
+    <br/>
+
+    <details>
+    <summary><strong>Groovy</strong></summary>
+
+    ```groovy
+    import org.forgerock.openam.auth.node.api.Action
+    import javax.security.auth.callback.TextOutputCallback
+
+    if (callbacks.isEmpty()) {
+        action = Action.send(
+            new TextOutputCallback(
+                TextOutputCallback.ERROR,
+                sharedState.toString()
+            )
+        ).build()
+    } else {
+        action = Action.goTo("true").build()
+    }
+    ```
+
+    <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.Groovy.Simple.png" width="512">
+    </details>
+
+    <br/>
+
+
+    Or, you can output multiple messages:
 
     <br/>
 
@@ -2500,13 +2557,13 @@ The `logger` object is your best debugging friend, but not the only one:
     try {
         var username = nonExistingBinding("username")
     } catch (e) {
-        messages += e + " "
+        messages += e + " | "
     }
 
     try {
         var username = sharedState.nonExistingMethod("username")
     } catch (e) {
-        messages += e + " "
+        messages += e + " | "
     }
 
     if (messages.length && callbacks.isEmpty()) {
@@ -2517,11 +2574,11 @@ The `logger` object is your best debugging friend, but not the only one:
             )
         ).build()
     } else {
-        action = fr.Action.goTo("false").build()
+        action = fr.Action.goTo("true").build()
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.TextOutputCallback.JavaScript.png" width="512">
+    <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.JavaScript.png" width="512">
     </details>
 
     <br/>
@@ -2530,13 +2587,24 @@ The `logger` object is your best debugging friend, but not the only one:
     <summary><strong>Groovy</strong></summary>
 
     ```groovy
+    import org.forgerock.openam.auth.node.api.Action
+    import javax.security.auth.callback.TextOutputCallback
+
+    def messages = ""
+
+    try {
+        var username = nonExistingBinding("username")
+    } catch (e) {
+        messages += e.toString() + " | "
+    }
+
     try {
         var username = sharedState.nonExistingMethod("username")
     } catch (e) {
-        messages += e.toString() + " "
+        messages += e.toString() + " | "
     }
 
-    if (messages.size() && callbacks.isEmpty()) {
+    if (messages.length() && callbacks.isEmpty()) {
         action = Action.send(
             new TextOutputCallback(
                 TextOutputCallback.ERROR,
@@ -2544,16 +2612,16 @@ The `logger` object is your best debugging friend, but not the only one:
             )
         ).build()
     } else {
-        action = Action.goTo("false").build()
+        action = Action.goTo("true").build()
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.TextOutputCallback.Groovy.png" width="512">
+    <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.Groovy.png" width="512">
     </details>
 
     <br/>
 
-    You can also have more control over the browser output with [com.sun.identity.authentication.callbacks.ScriptTextOutputCallback](https://backstage.forgerock.com/docs/am/7/authentication-guide/authn-supported-callbacks.html#backchannel-callbacks). For example, you can alert yourself with the debug messages:
+    When your debugging content grows, and the messages need to be better separated visually, you can have more control over the browser output with [com.sun.identity.authentication.callbacks.ScriptTextOutputCallback](https://backstage.forgerock.com/docs/am/7/authentication-guide/authn-supported-callbacks.html#backchannel-callbacks). For example, you can alert yourself with the debug messages:
 
     <br/>
 
@@ -2590,11 +2658,11 @@ The `logger` object is your best debugging friend, but not the only one:
             )
         ).build()
     } else {
-        action = fr.Action.goTo("false").build()
+        action = fr.Action.goTo("true").build()
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.alert.png" width="512">
+    <img alt="Script Text Output Callback from Authentication Tree outputs information in a JavaScript alert." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.alert_.png" width="512">
     </details>
 
     <br/>
@@ -2631,11 +2699,11 @@ The `logger` object is your best debugging friend, but not the only one:
             )
         ).build()
     } else {
-        action = fr.Action.goTo("false").build()
+        action = fr.Action.goTo("true").build()
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.alert.png" width="512">
+    <img alt="Script Text Output Callback from Authentication Tree outputs information in a JavaScript alert." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.alert_.png" width="512">
     </details>
 
     <br/>
@@ -2679,11 +2747,11 @@ The `logger` object is your best debugging friend, but not the only one:
             )
         ).build()
     } else {
-        action = fr.Action.goTo("false").build()
+        action = fr.Action.goTo("true").build()
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.console.png" width="720">
+    <img alt="Script Text Output Callback from Authentication Tree outputs information in the browser console." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.console.png" width="720">
     </details>
 
     <br/>
@@ -2723,11 +2791,11 @@ The `logger` object is your best debugging friend, but not the only one:
             )
         ).build()
     } else {
-        action = fr.Action.goTo("false").build()
+        action = fr.Action.goTo("true").build()
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.console.png" width="1024">
+    <img alt="Script Text Output Callback from Authentication Tree outputs information in the browser console." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.console.png" width="1200">
     </details>
 
     <br/>
@@ -3222,6 +3290,12 @@ Due to its cloud based, multi-tenant nature, the Identity Cloud environment intr
 At the time of this writing, the list of available log sources consists of the following:
 
 ```bash
+$ export ORIGIN=https://your-tenant-host.forgeblocks.com
+$ export API_KEY_ID=your-api-key-id
+$ export API_KEY_SECRET=your-api-key-secret
+```
+
+```bash
 $ curl -X GET \
   -H "x-api-key: $API_KEY_ID" \
   -H "x-api-secret: $API_KEY_SECRET" \
@@ -3267,75 +3341,117 @@ As shown in Identity Cloud docs, the logs come in a form of JSON, with each log 
 }
 ```
 
-In a Ruby script below, courtesy of Beau Croteau and Volker Scheuber, the [tailing logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#tailing_logs) procedure is automated and imitates a regular `tail -f` in the terminal.
+You can [tail logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#tailing_logs) from the selected source, and employ a script to automate the process of requesting, filtering, and outputting the logged content.
 
-<details open>
-<summary><strong>Ruby</strong></summary>
-
-```ruby
-# Specify the full base URL of the FIDC service.
-host="https://your-tenant.forgeblocks.com"
-
-# Specify the log API key and secret
-api_key_id="aaa2...219"
-api_key_secret="56ce...1ada1"
-
-# Available sources are listed below. Uncomment the source you want to use. For development and debugging use "am-core" and "idm-core" respectively:
-# source="am-access"
-# source="am-activity"
-# source="am-authentication"
-# source="am-config"
-source="am-core"
-# source="am-everything"
-# source="ctsstore"
-# source="ctsstore-access"
-# source="ctsstore-config-audit"
-# source="ctsstore-upgrade"
-# source="idm-access"
-# source="idm-activity"
-# source="idm-authentication"
-# source="idm-config"
-# source="idm-core"
-# source="idm-everything"
-# source="idm-sync"
-# source="userstore"
-# source="userstore-access"
-# source="userstore-config-audit"
-# source="userstore-ldif-importer"
-# source="userstore-upgrade"
-
-require 'pp'
-require 'json'
-
-prc=""
-while(true) do
-  o=`curl -s --get --header 'x-api-key: #{api_key_id}' #{prc} --header 'x-api-secret: #{api_key_secret}' --data 'source=#{source}' "#{host}/monitoring/logs/tail"`
-  obj=JSON.parse(o)
-  obj["result"].each{|r|
-    pp r["payload"]
-  }
-  prc="--data '_pagedResultsCookie=#{obj["pagedResultsCookie"]}'"
-  sleep 10
-end
-```
-</details>
-
-<br>
-
-The output produced by the script may be processed with command-line tools of your choice.
-
-For example, you can filter the output and change its presentation with [jq](https://stedolan.github.io/jq/tutorial/). To prepare the output content for the tool, `print` the payload and use `to_json` to make it a stringified JSON:
-
-```ruby
-    # pp r["payload"]
-    print r["payload"].to_json
-```
-
-The following command will filter the logs content by presence of the "exception" key, or by checking if the nested "logger" property is populated with a script reference; then, it will limit the presentation to "logger", "message", and "exception" keys:
+In its default configuration, [this example script for Node.js](https://github.com/lapinek/fidc-logs) can be used to print out Identity Cloud logs as stringified JSON in the terminal:
 
 ```bash
-ruby tail.rb | jq '. | select(objects) | select(has("exception") or (.logger | test("scripts."))) | {logger: .logger, message: .message, timestamp: .timestamp, exception: .exception}'
+$ node tail.am-core.js
 ```
+
+```json
+. . .
+"10.138.0.42 - - [13/Jan/2021:20:01:40 +0000] \"GET /am/isAlive.jsp HTTP/1.1\" 200 112 1ms\n"
+"10.40.49.236 - - [13/Jan/2021:20:01:40 +0000] \"GET /am/isAlive.jsp HTTP/1.0\" 200 112 0ms\n"
+{"context":"default","level":"WARN","logger":"com.sun.identity.idm.IdUtils","mdc":{"transactionId":"0d3c7dac-d4e8-4cdd-b651-f5ff6659113d-566"},"message":"Error searching for user identity IdUtils.getIdentity: No user found for idm-provisioning","thread":"http-nio-8080-exec-4","timestamp":"2021-01-13T20:01:50.336Z","transactionId":"0d3c7dac-d4e8-4cdd-b651-f5ff6659113d-566"}
+{"context":"default","level":"ERROR","logger":"scripts.OAUTH2_ACCESS_TOKEN_MODIFICATION.d22f9a0c-426a-4466-b95e-d0f125b0d5fa","mdc":{"transactionId":"0d3c7dac-d4e8-4cdd-b651-f5ff6659113d-566"},"message":"OAuth2 Access Token Modification Script","thread":"ScriptEvaluator-1","timestamp":"2021-01-13T20:01:50.339Z","transactionId":"0d3c7dac-d4e8-4cdd-b651-f5ff6659113d-566"}
+. . .
+```
+
+The output produced by the script may be further processed with command-line tools of your choice.
+
+For example, you can filter the output and change its presentation with [jq](https://stedolan.github.io/jq/tutorial/). The following command will filter the logs content by presence of the "exception" key, or by checking if the nested "logger" property is populated with a script reference; then, it will limit the presentation to "logger", "message", "timestamp", and "exception" keys:
+
+```bash
+$ node tail.am-core.js | jq '. | select(objects) | select(has("exception") or (.logger | test("scripts."))) | {logger: .logger, message: .message, timestamp: .timestamp, exception: .exception}'
+```
+
+```json
+. . .
+{
+  "logger": "scripts.AUTHENTICATION_TREE_DECISION_NODE.bbf4feef-2bfe-46b7-824f-f632f7de426f",
+  "message": "value: [userName:user.0]",
+  "timestamp": "2021-01-14T00:07:38.809Z",
+  "exception": null
+}
+{
+  "logger": "org.forgerock.openam.core.rest.authn.trees.AuthTrees",
+  "message": "Exception in processing the tree",
+  "timestamp": "2021-01-14T00:07:38.815Z",
+  "exception": "org.forgerock.openam.auth.node.api.NodeProcessException: Script must set 'outcome' to a string.\n\tat org.forgerock.openam.auth.nodes.ScriptedDecisionNode.process(ScriptedDecisionNode.java:237)\n\t . . . "
+}
+. . .
+```
+
+Alternatively, you can modify the script itself to tailor the logs data prior to printing it out.
+
+In this Node.js tool, you can process and output logs with a custom function. This is demonstrated in [one of the examples](https://github.com/lapinek/fidc-logs/blob/main/tail.idm-core.js#L40-L58) included in the repository.
+
+Yet another option is making changes in the main module, [tail.js](https://github.com/lapinek/fidc-logs/blob/main/tail.js). This way, commonly used logs processing techniques could be shared between different, source-specific callers, and your further efforts _could_ be limited to providing additional configuration options. Such approach has been implemented in [this repository](https://github.com/vscheuber/fidc-debug-tools), which also maintains a list of the Identity Cloud log categories that could be used for filtering out some unwanted log "noise".
+
+> The Node.js JavaScript referenced above was inspired by a Ruby script, courtesy of Beau Croteau and Volker Scheuber:
+>
+> <details>
+> <summary><strong>Ruby</strong></summary>
+>
+> ```ruby
+> # Specify the full base URL of the FIDC service.
+> host="https://your-tenant.forgeblocks.com"
+>
+> # Specify the log API key and secret
+> api_key_id="aaa2...219"
+> api_key_secret="56ce...1ada1"
+>
+> # Available sources are listed below. Uncomment the source you want to use. For development and debugging use "am-core" and "idm-core" respectively:
+> # source="am-access"
+> # source="am-activity"
+> # source="am-authentication"
+> # source="am-config"
+> source="am-core"
+> # source="am-everything"
+> # source="ctsstore"
+> # source="ctsstore-access"
+> # source="ctsstore-config-audit"
+> # source="ctsstore-upgrade"
+> # source="idm-access"
+> # source="idm-activity"
+> # source="idm-authentication"
+> # source="idm-config"
+> # source="idm-core"
+> # source="idm-everything"
+> # source="idm-sync"
+> # source="userstore"
+> # source="userstore-access"
+> # source="userstore-config-audit"
+> # source="userstore-ldif-importer"
+> # source="userstore-upgrade"
+>
+> require 'pp'
+> require 'json'
+>
+> prc=""
+> while(true) do
+>   o=`curl -s --get --header 'x-api-key: #{api_key_id}' #{prc} --header 'x-api-secret: #{api_key_secret}' --data 'source=#{source}' "#{host}/monitoring/logs/tail"`
+>   obj=JSON.parse(o)
+>   obj["result"].each{|r|
+>     pp r["payload"]
+>   }
+>   prc="--data '_pagedResultsCookie=#{obj["pagedResultsCookie"]}'"
+>   sleep 10
+> end
+> ```
+>
+> To prepare the output content for the tool, `print` the payload and use `to_json` to make it a stringified JSON:
+>
+> ```ruby
+>     # pp r["payload"]
+>     print r["payload"].to_json
+> ```
+> </details>
+>
+> <br>
+
+<br/>
 
 <!-- > A script can be made executable by adding `#!/usr/bin/env ruby` at the top and allowing for execution:
 >
@@ -3343,13 +3459,47 @@ ruby tail.rb | jq '. | select(objects) | select(has("exception") or (.logger | t
 > $ chmod +x ./tail.rb
 >``` -->
 
-Alternatively, you can modify the script itself to process the logs data prior to printing it out.
-
-In this regard, a functionally similar [rewrite in JavaScript for Node.js](https://github.com/lapinek/fidc-logs) may provide a more familiar programming environment for some people. An example of extending this JavaScript with custom filtering could be found at https://github.com/vscheuber/fidc-debug-tools.
-
 Unfortunately, without filtering, the current log sources in Identity Cloud output overwhelming amount of data with only some of it providing meaningful feedback for debugging purposes. Hopefully, more specific log categories become supported in the near future so that no additional programming skills will be required for developing scripts against the identity cloud environment.
 
-As an alternative, you can also use other debugging techniques outlined in this writing for the scripted decision type: [delivering debugging information to the client side with the help of callbacks](#script-type-scripted-decision-node-debugging-callbacks), and/or [including it in the custom error message](#script-type-scripted-decision-node-debugging-error-message) returned to the user agent.
+In addition, the response from the Identity Cloud monitoring endpoint is often far from immediate.
+
+As an alternative, to receive a quick feedback from your authentication journey, you can use debugging techniques outlined in details for the scripted decision type:
+
+* [Displaying debugging information with the help of callbacks](#script-type-scripted-decision-node-debugging-callbacks)
+* [Including debugging information in the custom error message](#script-type-scripted-decision-node-debugging-error-message)
+
+For example, to show an object content on the client side in a scripted decision, you can use [javax.security.auth.callback.TextOutputCallback](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/javax/security/auth/callback/TextOutputCallback.html):
+
+<br/>
+
+<details open>
+<summary><strong>JavaScript</strong></summary>
+
+```javascript
+var fr = JavaImporter(
+    org.forgerock.openam.auth.node.api.Action,
+    javax.security.auth.callback.TextOutputCallback
+)
+
+var messages = "Debugger"
+messages = messages.concat(" | sharedState: ",  sharedState.toString())
+
+if (callbacks.isEmpty()) {
+    action = fr.Action.send(
+        new fr.TextOutputCallback(
+            fr.TextOutputCallback.ERROR,
+            messages
+        )
+    ).build()
+} else {
+    action = fr.Action.goTo("true").build()
+}
+```
+</details>
+
+<br/>
+
+<img alt="Platform Login screen, Debugging information is displayed in the browser in a page element." src="README_files/2021-01/Platform.Authentication-Journey.Scripted-Decision.TextOutputCallback.png" width="360">
 
 ### <a id="fidc-script-java-allow" name="fidc-script-java-allow"></a>Allowed Java Classes
 
@@ -3387,7 +3537,7 @@ Which causes no issues while commented out, but if uncommented it currently resu
 "Access to Java class \"org.apache.groovy.json.internal.LazyMap\" is prohibited."
 ```
 
-Every reference to allowed and disallowed Java classes in this article applies here, with the additional detail that at the moment you will not be able to change the default scripting configuration. This means, for example, that in JavaScript, you will not be able to check what Java class an object represents (by inspecting the `class` property, as described in [Bindings](#script-bindings)). Similarly, you cannot iterate over content of the `sharedState` and other HashMap objects by obtaining their keys, as shown in the [Language > Allowed Java Classes](#script-language-java-allow) examples. At the same time, since Groovy is not supported in Identity Cloud, you might not be willing to invest too much effort in developing Groovy scripts. Some of this issues could be resolved by changes in the Identity Cloud scripting engine configuration and its control in the future.
+Every reference to allowed and disallowed Java classes in this article applies here, with the additional detail that at the moment you will not be able to change the default scripting configuration. This means, for example, that in JavaScript, you will not be able to check what Java class an object represents (by inspecting the `class` property, as described in [Bindings](#script-bindings)). Similarly, in JavaScript, you cannot currently iterate over the content of `sharedState` and other HashMap objects by getting a list of their keys, as shown in the [Language > Allowed Java Classes](#script-language-java-allow) examples. At the same time, since Groovy is not supported in Identity Cloud, you might not be willing to invest too much effort in developing Groovy scripts. Some of this issues could be resolved in the future with changes in the Identity Cloud scripting engine configuration and/or in how it is controlled.
 
 ### <a id="fidc-script-type-scripted-decision-node-bindings-idrepository" name="fidc-script-type-scripted-decision-node-bindings-idrepository"></a>Accessing Profile Data
 
@@ -3397,16 +3547,18 @@ An Identity Cloud tenant is deployed in platform mode with an identity repositor
 
 The Identity Store configuration in AM is not exposed in Identity Cloud; hence, it may not be obvious that the user search attribute is not `uid`. This means that, in the scripted decision context, you cannot pass username into methods of the `idRepository` object. Instead, you need to identify users with their IDM object ID, which corresponds to the `_id` attribute value.
 
-In an environment integrated with IDM, as in the case of Identity Cloud, you can utilize [Identify Existing User Node](https://backstage.forgerock.com/docs/am/7/authentication-guide/auth-node-configuration-hints.html#auth-node-identify-existing-user) for looking up a user by an attribute, according to the `Identity Object` you had chosen for your authentication Journey. For example, you can place this node after the Username Collector:
+In an environment integrated with IDM, as in the case of Identity Cloud, you can utilize [Identify Existing User Node](https://backstage.forgerock.com/docs/am/7/authentication-guide/auth-node-configuration-hints.html#auth-node-identify-existing-user) for looking up a user by an attribute, according to the `Identity Object` you had chosen for your authentication journey.
 
-<img alt="Platform Admin, New Authentication Journey dialog with Identify Object selected" src="README_files/Platform.Authentication-Journey.New.png" width="490">
+For example, you can place `Identify Existing User` after the Username Collector node, and look up the user with their `username` checked against the IDM's `userName` attribute:
+
+<img alt="Platform Admin, New Authentication Journey dialog with Identify Object selected" src="README_files/2020-12/Platform.Authentication-Journey.New__0.png" width="490">
 
 <br/>
 <br/>
 
-<img alt="Platform Admin, Authentication Journey with Identify Existing User and Scripted Decision nodes" src="README_files/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.png" width="900">
+<img alt="Platform Admin, Authentication Journey with Identify Existing User and Scripted Decision nodes" src="README_files/2020-12/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.png" width="900">
 
-Doing so will save the `_id` property in the `sharedState` object, and let you use its value as the user identifier in the `idRepository` methods:
+Doing so will save the `_id` property in the `sharedState` object (if the user is found), and let you use its value as the user identifier in the `idRepository` methods:
 
 <br/>
 
@@ -3448,7 +3600,7 @@ $ node tail.am-core.js | jq '. | select(objects) | select(has("exception") or (.
 
 Adding an `Identifier` to the `Identify Existing User` configuration will put `objectAttributes` property into the `sharedState` object, and populate it with the specified attribute, which may be required by other IDM nodes in platform mode:
 
-<img alt="Identify Existing User Node Configuration" src="README_files/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.Configuration.png" width="490">
+<img alt="Identify Existing User Node Configuration" src="README_files/2020-12/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.Configuration.png" width="490">
 
 ```json
 {
@@ -3459,6 +3611,80 @@ Adding an `Identifier` to the `Identify Existing User` configuration will put `o
 }
 ```
 
+The attribute value by which the `Identify Existing User` node finds the user can come from another interactive node such as `Attribute Collector`. For example, you can identify the user by their email:
+
+<img alt="Authentication Journey with the Attribute Collector node configured to collect user email, that the Identify Existing User node will use." src="README_files/2021-01/Platform.Authentication-Journey.Identify-Existing-User.Attribute-Collector.Configuration.png" width="1024">
+
+In this case, `Identify Attribute` in the `Identify Existing User` node is set to `mail`:
+
+<img alt="Authentication Journey with the Attribute Collector node configured to collect user email, that the Identify Existing User node will use." src="README_files/2021-01/Platform.Authentication-Journey.Attribute-Collector.Identify-Existing-User.Configuration.png" width="1024">
+
+If the user is found, their `_id` will be added to the shared state:
+
+```json
+{
+  "logger": "scripts.AUTHENTICATION_TREE_DECISION_NODE.42f7ebf7-1a71-4ec8-8984-c91bc0f7c3fd",
+  "message": "sharedState: {realm=/alpha, authLevel=0, objectAttributes={mail=user.0@e.com, userName=user.0}, _id=d7eed43d-ab2c-40be-874d-92571aa17107, username=user.0}",
+  "timestamp": "2021-01-19T08:05:10.835Z",
+  "exception": null
+}
+```
+
+You can also specify user identifier programmatically.
+
+For example, consider scenario where your user ID comes as an authentication request parameter, and the corresponding identity field is a custom attribute:
+
+<img alt="Platform Admin, Alpha realm user details, Custom attribute Generic Indexed String 2 is populated with the user's external email." src="README_files/2021-01/Platform.Managed-User.Custom-Attributes.Raw-JSON.png" width="1024">
+
+<br/>
+<br/>
+
+<img alt="Authentication Journey with the Attribute Collector node configured to collect user email, that the Identify Existing User node will use." src="README_files/2021-01/Platform.Scripted-Decision.Identify-Existing-User.Configuration.png" width="1024">
+
+<br/>
+<br/>
+
+<details open>
+<summary><strong>JavaScript in Scripted Decision Username</strong></summary>
+
+```javascript
+var idParameter = requestParameters.get("id")
+
+if (idParameter && !idParameter.isEmpty()) {
+    sharedState.put("username", idParameter.get(0))
+}
+
+outcome = "true"
+```
+
+<br>
+
+<details open>
+<summary><strong>JavaScript in Scripted Decision Debugger</strong></summary>
+
+```javascript
+logger.error("sharedState: " + sharedState)
+
+outcome = "true"
+```
+
+<br>
+
+When you request this authentication journey with the correct `id` parameter, and use it to populate the "username" key in `sharedState`, the Identify Existing User node will be able to find the corresponding identity record:
+
+`https://openam-dx-kl02.forgeblocks.com/am/XUI/?realm=/alpha&service=ScriptedIdentifyUser&id=5f31ccc762cb7e2033b6626eab066b23015dc012#/`
+
+```json
+{
+  "logger": "scripts.AUTHENTICATION_TREE_DECISION_NODE.42f7ebf7-1a71-4ec8-8984-c91bc0f7c3fd",
+  "message": "sharedState: {realm=/alpha, authLevel=0, username=user.0, _id=d7eed43d-ab2c-40be-874d-92571aa17107, objectAttributes={userName=user.0}}",
+  "timestamp": "2020-12-20T03:34:43.842Z",
+  "exception": null
+}
+```
+
+***
+
 Another consequence of the Identity Store configuration not being exposed in the AM console is that you cannot verify which attributes in the identity store are accessible from the scripts. In addition, attribute naming in AM and IDM is inconsistent, so the former cannot be derived from the latter. This is a [known issue](https://backstage.forgerock.com/docs/idcloud/latest/paas/known-issues/fraas-4585.html), which provides a convenient lookup table in its Workaround section as a temporary remedy.
 
 > You can see IDM attributes for a realm in the Platform Admin under:
@@ -3468,7 +3694,7 @@ Another consequence of the Identity Store configuration not being exposed in the
 
 For example, to get `frIndexedString1` value, labeled as `Generic Indexed String 1` in the UI, in an OAuth2 Access Token Modification script, you would refer to the corresponding AM attribute as `fr-attr-istr1`:
 
-<img alt="Platform Admin, New Authentication Journey dialog with Identify Object selected" src="README_files/Platform.Managed-User.Custom-Attributes.png" width="658">
+<img alt="Platform Admin, Alpha realm user details, Custom attribute Generic Indexed String 1" src="README_files/2021-01/Platform.Managed-User.Custom-Attributes.png" width="658">
 
 <br/>
 
