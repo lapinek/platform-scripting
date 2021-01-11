@@ -6,19 +6,17 @@ This article aims to complement the currently available and ever-improving [offi
 
 > While developing scripts, also check for solutions in the constantly growing [ForgeRock Knowledge Base](https://backstage.forgerock.com/knowledge/search?q=am%20scripting).
 
-## <a id="contents" name="contents"></a>Contents
+The content is structured as an overview of scripting environment in AM. It starts with common components and gets into specifics when the script language, script type, or runtime conditions introduce them.
 
-This article is structured as an overview of scripting environment in AM. It starts with common components and gets into specifics when the script language, script type, or runtime conditions introduce them.
-
-> You can always return to the Contents by selecting the [Back to Contents](#contents) links provided at the beginning of each section in this document.
-
-The [Scripting API Functionality](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-functionality.html) available for a server-side script will depend on its application and context.
-
-All scripts in AM have access to [Debug Logging](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html) and [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-http-client.html).
+The [Scripting API Functionality](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-functionality.html) available for a server-side script will depend on its application and context. All scripts in AM have access to [Debug Logging](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html) and [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-http-client.html).
 
 When you create a script under Realms > _Realm Name_ > Scripts, however, you make choices that will have some additional effect on the functionality available from the script.
 
 Futhermore, the environment in which AM is deployed may affect the configuration and debugging options during script development.
+
+## <a id="contents" name="contents"></a>Contents
+
+> You can always return to the Contents by selecting the [Back to Contents](#contents) links provided at the beginning of each section in this document.
 
 * [Bindings](#script-bindings)
 * [Debug Logging](#script-debug-logging)
@@ -1442,7 +1440,7 @@ In addition, for the server-side scripts, access to the underlying Java classes 
 
 [Back to Contents](#contents)
 
-<img alt="AM Console, Authentication Tree with Username Collector and Scripted Decision nodes" src="README_files/AM.Authentication-Tree.Scripted-Decision.Username-Collector.png" width="512">
+<img alt="AM Console, Authentication Tree with Username Collector and Scripted Decision nodes" src="README_files/2020-11/AM.Authentication-Tree.Scripted-Decision.Username-Collector.png" width="512">
 
 #### <a id="script-type-scripted-decision-node-configuration" name="script-type-scripted-decision-node-configuration"></a>Configuration
 
@@ -1452,7 +1450,7 @@ AM serves as an authentication and authorization server, and the recommended aut
 
 In a scripted decision node configuration, you need to specify a server-side script to be executed, its possible outcomes, and all of the inputs required by the script and the outputs it is required to produce:
 
-<img alt="Scripted Decision Node Configuration" src="README_files/AM.Scripted-Decision.Configuration.png" width="192">
+<img alt="Scripted Decision Node Configuration" src="README_files/2020-11/AM.Scripted-Decision.Configuration.png" width="192">
 
 The `*` (wildcard) variable can be referenced in the script configuration to include all available inputs or outputs without verifying their presence in [Shared Tree State](https://backstage.forgerock.com/docs/am/7/auth-nodes/core-action.html#accessing-tree-state)—a special object that holds the current authentication state and allows for data exchange between otherwise stateless nodes in the authentication tree.
 
@@ -1470,7 +1468,7 @@ At the end of a script execution, the script can communicate back to its node by
 
     When the node execution completes, tree evaluation will continue along the path that matches the value of the outcome. For example, the expected outcome could be "true" or "false":
 
-    <img alt="Scripted Decision Node Outcome Paths" src="README_files/AM.Scripted-Decision.Outcomes.png">
+    <img alt="Scripted Decision Node Outcome Paths" src="README_files/2020-11/AM.Scripted-Decision.Outcomes.png">
 
     Then, the script can define its outcome by assigning a _String_ value to the `outcome` variable. For example:
 
@@ -1665,7 +1663,7 @@ The script context is provided via its bindings. The bindings also serve as the 
 
     In the example above, because the `getState` binding is not declared, JavaScript will produce the following message to be displayed on the login screen:
 
-    <img alt="Login Screen Custom Error Message" src="README_files/Login.errorMessage.png" width="381">
+    <img alt="Login Screen Custom Error Message" src="README_files/2020-11/Login.errorMessage.png" width="381">
 
     Which is a part of the failed authentication response returned to the user agent:
 
@@ -2521,7 +2519,7 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.TextOutputCallback.JavaScript.png" width="512">
+    <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.JavaScript.png" width="512">
     </details>
 
     <br/>
@@ -2548,7 +2546,7 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.TextOutputCallback.Groovy.png" width="512">
+    <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.Groovy.png" width="512">
     </details>
 
     <br/>
@@ -2594,7 +2592,7 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.alert.png" width="512">
+    <img alt="Script Text Output Callback from Authentication Tree outputs information in a JavaScript alert." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.alert_.png" width="512">
     </details>
 
     <br/>
@@ -2635,7 +2633,7 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.alert.png" width="512">
+    <img alt="Script Text Output Callback from Authentication Tree outputs information in a JavaScript alert." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.alert_.png" width="512">
     </details>
 
     <br/>
@@ -2683,7 +2681,7 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.console.png" width="720">
+    <img alt="Script Text Output Callback from Authentication Tree outputs information in the browser console." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.console.png" width="720">
     </details>
 
     <br/>
@@ -2727,7 +2725,7 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
-    <img alt="Text Output Callback from Authentication Tree" src="README_files/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.console.png" width="1024">
+    <img alt="Script Text Output Callback from Authentication Tree outputs information in the browser console." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.console.png" width="1200">
     </details>
 
     <br/>
@@ -3399,12 +3397,12 @@ The Identity Store configuration in AM is not exposed in Identity Cloud; hence, 
 
 In an environment integrated with IDM, as in the case of Identity Cloud, you can utilize [Identify Existing User Node](https://backstage.forgerock.com/docs/am/7/authentication-guide/auth-node-configuration-hints.html#auth-node-identify-existing-user) for looking up a user by an attribute, according to the `Identity Object` you had chosen for your authentication Journey. For example, you can place this node after the Username Collector:
 
-<img alt="Platform Admin, New Authentication Journey dialog with Identify Object selected" src="README_files/Platform.Authentication-Journey.New.png" width="490">
+<img alt="Platform Admin, New Authentication Journey dialog with Identify Object selected" src="README_files/2020-12/Platform.Authentication-Journey.New__0.png" width="490">
 
 <br/>
 <br/>
 
-<img alt="Platform Admin, Authentication Journey with Identify Existing User and Scripted Decision nodes" src="README_files/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.png" width="900">
+<img alt="Platform Admin, Authentication Journey with Identify Existing User and Scripted Decision nodes" src="README_files/2020-12/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.png" width="900">
 
 Doing so will save the `_id` property in the `sharedState` object, and let you use its value as the user identifier in the `idRepository` methods:
 
@@ -3448,7 +3446,7 @@ $ node tail.am-core.js | jq '. | select(objects) | select(has("exception") or (.
 
 Adding an `Identifier` to the `Identify Existing User` configuration will put `objectAttributes` property into the `sharedState` object, and populate it with the specified attribute, which may be required by other IDM nodes in platform mode:
 
-<img alt="Identify Existing User Node Configuration" src="README_files/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.Configuration.png" width="490">
+<img alt="Identify Existing User Node Configuration" src="README_files/2020-12/Platform.Authentication-Journey.Scripted-Decision.Identify-Existing-User.Configuration.png" width="490">
 
 ```json
 {
@@ -3468,7 +3466,7 @@ Another consequence of the Identity Store configuration not being exposed in the
 
 For example, to get `frIndexedString1` value, labeled as `Generic Indexed String 1` in the UI, in an OAuth2 Access Token Modification script, you would refer to the corresponding AM attribute as `fr-attr-istr1`:
 
-<img alt="Platform Admin, New Authentication Journey dialog with Identify Object selected" src="README_files/Platform.Managed-User.Custom-Attributes.png" width="658">
+<img alt="Platform Admin, Alpha realm user details, Custom attribute Generic Indexed String 1" src="README_files/2021-01/Platform.Managed-User.Custom-Attributes.png" width="658">
 
 <br/>
 
