@@ -3220,6 +3220,12 @@ Due to its cloud based, multi-tenant nature, the Identity Cloud environment intr
 At the time of this writing, the list of available log sources consists of the following:
 
 ```bash
+$ export ORIGIN=https://your-tenant-host.forgeblocks.com
+$ export API_KEY_ID=your-api-key-id
+$ export API_KEY_SECRET=your-api-key-secret
+```
+
+```bash
 $ curl -X GET \
   -H "x-api-key: $API_KEY_ID" \
   -H "x-api-secret: $API_KEY_SECRET" \
@@ -3265,85 +3271,121 @@ As shown in Identity Cloud docs, the logs come in a form of JSON, with each log 
 }
 ```
 
-In a Ruby script below, courtesy of Beau Croteau and Volker Scheuber, the [tailing logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#tailing_logs) procedure is automated and imitates a regular `tail -f` in the terminal.
+You can [tail logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#tailing_logs) from the selected source, and employ a script to automate the process of requesting, filtering, and outputting the logged content.
 
-<details open>
-<summary><strong>Ruby</strong></summary>
-
-```ruby
-# Specify the full base URL of the FIDC service.
-host="https://your-tenant.forgeblocks.com"
-
-# Specify the log API key and secret
-api_key_id="aaa2...219"
-api_key_secret="56ce...1ada1"
-
-# Available sources are listed below. Uncomment the source you want to use. For development and debugging use "am-core" and "idm-core" respectively:
-# source="am-access"
-# source="am-activity"
-# source="am-authentication"
-# source="am-config"
-source="am-core"
-# source="am-everything"
-# source="ctsstore"
-# source="ctsstore-access"
-# source="ctsstore-config-audit"
-# source="ctsstore-upgrade"
-# source="idm-access"
-# source="idm-activity"
-# source="idm-authentication"
-# source="idm-config"
-# source="idm-core"
-# source="idm-everything"
-# source="idm-sync"
-# source="userstore"
-# source="userstore-access"
-# source="userstore-config-audit"
-# source="userstore-ldif-importer"
-# source="userstore-upgrade"
-
-require 'pp'
-require 'json'
-
-prc=""
-while(true) do
-  o=`curl -s --get --header 'x-api-key: #{api_key_id}' #{prc} --header 'x-api-secret: #{api_key_secret}' --data 'source=#{source}' "#{host}/monitoring/logs/tail"`
-  obj=JSON.parse(o)
-  obj["result"].each{|r|
-    pp r["payload"]
-  }
-  prc="--data '_pagedResultsCookie=#{obj["pagedResultsCookie"]}'"
-  sleep 10
-end
-```
-</details>
-
-<br>
-
-The output produced by the script may be processed with command-line tools of your choice.
-
-For example, you can filter the output and change its presentation with [jq](https://stedolan.github.io/jq/tutorial/). To prepare the output content for the tool, `print` the payload and use `to_json` to make it a stringified JSON:
-
-```ruby
-    # pp r["payload"]
-    print r["payload"].to_json
-```
-
-The following command will filter the logs content by presence of the "exception" key, or by checking if the nested "logger" property is populated with a script reference; then, it will limit the presentation to "logger", "message", and "exception" keys:
+In its default configuration, this [example script](https://github.com/lapinek/fidc-logs) written for Node.js can be used in the terminal to print out Identity Cloud logs as stringified JSON:
 
 ```bash
-ruby tail.rb | jq '. | select(objects) | select(has("exception") or (.logger | test("scripts."))) | {logger: .logger, message: .message, timestamp: .timestamp, exception: .exception}'
+$ node tail.am-core.js
 ```
+
+```json
+. . .
+"10.138.0.42 - - [13/Jan/2021:20:01:40 +0000] \"GET /am/isAlive.jsp HTTP/1.1\" 200 112 1ms\n"
+"10.40.49.236 - - [13/Jan/2021:20:01:40 +0000] \"GET /am/isAlive.jsp HTTP/1.0\" 200 112 0ms\n"
+{"context":"default","level":"WARN","logger":"com.sun.identity.idm.IdUtils","mdc":{"transactionId":"0d3c7dac-d4e8-4cdd-b651-f5ff6659113d-566"},"message":"Error searching for user identity IdUtils.getIdentity: No user found for idm-provisioning","thread":"http-nio-8080-exec-4","timestamp":"2021-01-13T20:01:50.336Z","transactionId":"0d3c7dac-d4e8-4cdd-b651-f5ff6659113d-566"}
+{"context":"default","level":"ERROR","logger":"scripts.OAUTH2_ACCESS_TOKEN_MODIFICATION.d22f9a0c-426a-4466-b95e-d0f125b0d5fa","mdc":{"transactionId":"0d3c7dac-d4e8-4cdd-b651-f5ff6659113d-566"},"message":"OAuth2 Access Token Modification Script","thread":"ScriptEvaluator-1","timestamp":"2021-01-13T20:01:50.339Z","transactionId":"0d3c7dac-d4e8-4cdd-b651-f5ff6659113d-566"}
+. . .
+```
+
+The output produced by the script may be further processed with command-line tools of your choice.
+
+For example, you can filter the output and change its presentation with [jq](https://stedolan.github.io/jq/tutorial/). The following command will filter the logs content by presence of the "exception" key, or by checking if the nested "logger" property is populated with a script reference; then, it will limit the presentation to "logger", "message", "timestamp", and "exception" keys:
+
+```bash
+$ node tail.am-core.js | jq '. | select(objects) | select(has("exception") or (.logger | test("scripts."))) | {logger: .logger, message: .message, timestamp: .timestamp, exception: .exception}'
+```
+
+```json
+. . .
+{
+  "logger": "scripts.AUTHENTICATION_TREE_DECISION_NODE.bbf4feef-2bfe-46b7-824f-f632f7de426f",
+  "message": "value: [userName:user.0]",
+  "timestamp": "2021-01-14T00:07:38.809Z",
+  "exception": null
+}
+{
+  "logger": "org.forgerock.openam.core.rest.authn.trees.AuthTrees",
+  "message": "Exception in processing the tree",
+  "timestamp": "2021-01-14T00:07:38.815Z",
+  "exception": "org.forgerock.openam.auth.node.api.NodeProcessException: Script must set 'outcome' to a string.\n\tat org.forgerock.openam.auth.nodes.ScriptedDecisionNode.process(ScriptedDecisionNode.java:237)\n\t . . . "
+}
+. . .
+```
+
+Alternatively, you can modify the script itself to tailor the logs data prior to printing it out. In the Node.js tool referenced above, you can [process logs with a custom function](https://github.com/lapinek/fidc-logs/blob/main/tail.idm-core.js#L40-L58).
+
+Yet another option is making changes in the main module, [tail.js](https://github.com/lapinek/fidc-logs/blob/main/tail.js). This way, commonly used log processing techniques could be shared between different, source-specific callers, and your further efforts would be limited to providing additional configuration options. Such approach has been demonstrated in [this repository](https://github.com/vscheuber/fidc-debug-tools), which also maintains a list of the Identity Cloud log categories, that could be used for filtering out unwanted "noise".
+
+> The Node.js JavaScript referenced above was inspired by a Ruby script, courtesy of Beau Croteau and Volker Scheuber:
+>
+> <details>
+> <summary><strong>Ruby</strong></summary>
+>
+> ```ruby
+> # Specify the full base URL of the FIDC service.
+> host="https://your-tenant.forgeblocks.com"
+>
+> # Specify the log API key and secret
+> api_key_id="aaa2...219"
+> api_key_secret="56ce...1ada1"
+>
+> # Available sources are listed below. Uncomment the source you want to use. For development and debugging use "am-core" and "idm-core" respectively:
+> # source="am-access"
+> # source="am-activity"
+> # source="am-authentication"
+> # source="am-config"
+> source="am-core"
+> # source="am-everything"
+> # source="ctsstore"
+> # source="ctsstore-access"
+> # source="ctsstore-config-audit"
+> # source="ctsstore-upgrade"
+> # source="idm-access"
+> # source="idm-activity"
+> # source="idm-authentication"
+> # source="idm-config"
+> # source="idm-core"
+> # source="idm-everything"
+> # source="idm-sync"
+> # source="userstore"
+> # source="userstore-access"
+> # source="userstore-config-audit"
+> # source="userstore-ldif-importer"
+> # source="userstore-upgrade"
+>
+> require 'pp'
+> require 'json'
+>
+> prc=""
+> while(true) do
+>   o=`curl -s --get --header 'x-api-key: #{api_key_id}' #{prc} --header 'x-api-secret: #{api_key_secret}' --data 'source=#{source}' "#{host}/monitoring/logs/tail"`
+>   obj=JSON.parse(o)
+>   obj["result"].each{|r|
+>     pp r["payload"]
+>   }
+>   prc="--data '_pagedResultsCookie=#{obj["pagedResultsCookie"]}'"
+>   sleep 10
+> end
+> ```
+>
+> To prepare the output content for the tool, `print` the payload and use `to_json` to make it a stringified JSON:
+>
+> ```ruby
+>     # pp r["payload"]
+>     print r["payload"].to_json
+> ```
+> </details>
+>
+> <br>
+
+<br/>
 
 <!-- > A script can be made executable by adding `#!/usr/bin/env ruby` at the top and allowing for execution:
 >
 > ```bash
 > $ chmod +x ./tail.rb
 >``` -->
-
-Alternatively, you can modify the script itself to process the logs data prior to printing it out.
-
-In this regard, a functionally similar [rewrite in JavaScript for Node.js](https://github.com/lapinek/fidc-logs) may provide a more familiar programming environment for some people. An example of extending this JavaScript with custom filtering could be found at https://github.com/vscheuber/fidc-debug-tools.
 
 Unfortunately, without filtering, the current log sources in Identity Cloud output overwhelming amount of data with only some of it providing meaningful feedback for debugging purposes. Hopefully, more specific log categories become supported in the near future so that no additional programming skills will be required for developing scripts against the identity cloud environment.
 
