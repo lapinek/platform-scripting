@@ -6,13 +6,13 @@ This article aims to complement the currently available and ever-improving [offi
 
 > While developing scripts, also check for solutions in the constantly growing [ForgeRock Knowledge Base](https://backstage.forgerock.com/knowledge/search?q=am%20scripting).
 
-The content is structured as an overview of scripting environment in AM. It starts with common components and gets into specifics when the script language, script type, or runtime conditions introduce them.
-
 The [Scripting API Functionality](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-functionality.html) available for a server-side script will depend on its application and context. All scripts in AM have access to [Debug Logging](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html) and [Accessing HTTP Services](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-http-client.html).
 
 When you create a script under Realms > _Realm Name_ > Scripts, however, you make choices that will have some additional effect on the functionality available from the script.
 
 Futhermore, the environment in which AM is deployed may affect the configuration and debugging options during script development.
+
+The content of this article is structured as an overview of the scripting environment in AM. It starts with common components and gets into specifics when the script language, script type, or runtime conditions introduce them.
 
 ## <a id="contents" name="contents"></a>Contents
 
@@ -69,7 +69,7 @@ Futhermore, the environment in which AM is deployed may affect the configuration
 
 Before you write a single line in your script, some of its context is already defined via bindings. The bindings exist in a script as top-level variables and provide the data available to the script, the objects to interact with, and the placeholders to communicate back to the core AM functionality.
 
-Some of the script templates included in AM installation (and serving as defaults for the script types) have references to the variables used in the script. Some may even explicitly state what bindings are available; for example, the OIDC Claims Script and OAuth2 Access Token Modification Script templates have a list of bindings in a commented section at the top. Others, however, are not as descriptive and rely on the developer's knowledge.
+Some of the script templates included in an AM installation (and serving as defaults for the script types) have references to the variables used in the script. Some may even explicitly state what bindings are available; for example, the OIDC Claims Script and OAuth2 Access Token Modification Script templates have a list of bindings in a commented section at the top. Others, however, are not as descriptive and rely on the developer's knowledge.
 
 You can output all available bindings by using the [logger object methods](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html). What you see will depend on the script type. For example, for a Scripted Decision Node script in AM 7.0:
 
@@ -401,7 +401,7 @@ In other environments, the logs data may be sent to the standard output or, as i
 
 When you know where to find the logs and [how to control the level of the debug output](https://ea.forgerock.com/docs/am/maintenance-guide/debug-logging.html), you can inspect the debug data for possible reasons your script is not working and/or for the information it outputs.
 
-As illustrated in the [Bindings](#script-bindings) chapter, with the [logger methods](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html), you can proactively output the script context. You can also output result of an operation, content of an object, a marker, etc., anything that could be converted into a string (explicitly in Groovy or implicitly in JavaScript). For example, you could output the content of the `sharedState` binding in the scripted decision context at some point of the authentication process:
+As illustrated in the [Bindings](#script-bindings) chapter, with the [logger methods](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-api-global-logger.html), you can proactively output the script context. You can also output result of an operation, content of an object, a marker, etc., anything that could be converted into a string (explicitly in Groovy or implicitly in JavaScript). For example, you could output the content of the `sharedState` binding in the scripted decision context at some point during the authentication process:
 
 <br/>
 
@@ -902,7 +902,7 @@ TypeError: Cannot call method "getIdentity" of undefined
 
 <br/>
 
-Similarly, if you try to detect Rhino version in a script, you'll need to import the `org.mozilla.javascript.Context` class, which is not allowed in AM 7.0.0 by default. Assigning this class to a variable or calling it directly will produce "it is object" errors, and using `javaImporter` will show the class as undefined:
+Similarly, if you try to detect the Rhino version in a script, you'll need to import the `org.mozilla.javascript.Context` class, which is not allowed in AM 7.0.0 by default. Assigning this class to a variable or calling it directly will produce "it is object" errors, and using `javaImporter` will show the class as undefined:
 
 <br/>
 
@@ -1174,7 +1174,7 @@ try {
 
 Nothing special needs to be done in order for this code to work in JavaScript.
 
-For another example, note differences in the requirements between the scripting engines in the following code:
+For another example, note the differences in the requirements between the scripting engines in the following code:
 
 <br/>
 
@@ -1243,7 +1243,7 @@ if (callbacks.isEmpty()) {
 
 <br/>
 
-For another example, out of the box, you may use `getClass()` to find out what Java object a variable implements, as described in [Bindings](#script-bindings). In JavaScript, the alternative is checking the object's `class` property, and for doing so you'd need to allow `java.lang.Class`, which is explicitly _prohibited_ by default.
+For another example, out of the box, you may use `getClass()` to find out what Java object a variable implements, as described in [Bindings](#script-bindings). In JavaScript, the alternative is checking the object's `class` property, and for doing so, you'd need to allow `java.lang.Class`, which is explicitly _prohibited_ by default.
 
 Iterating over an object might be easier in Groovy as well. For example, the `sharedState` object in a scripted decision represents [java.util.LinkedHashMap](https://docs.oracle.com/javase/8/docs/api/java/util/LinkedHashMap.html). Its `forEach()` method does not work with the JavaScript syntax, but you could evaluate or process the content of `sharedState` dynamically by iterating over the list of its keys:
 
@@ -1420,7 +1420,7 @@ logger.error(requestParameters.get("authIndexType").get(0) == authIndexType)
 
 In both JavaScript and Groovy, to convert to a String, you can use `toString()` or concatenate a string and a value (in that order).
 
-_Generally_, however, in JavaScript, it is better to use the `String` object in non-constructor context, for it allows to handle at once `Symbol`, `null`, and `undefined` values. For example:
+_Generally_, however, in JavaScript, it is better to use the `String` object in non-constructor context, for it lets you handle `Symbol`, `null`, and `undefined` values all at once. For example:
 
 ```javascript
 String(idRepository.getAttribute(username, attribute))
@@ -1637,7 +1637,7 @@ The script context is provided via its bindings. The bindings also serve as the 
 
     <br/>
 
-    By using the `sharedState.put(String key, Object value)` method, you can store information that could be used later in the authentication session. Because, you may not be ready to make your scripted decision yet, but your script may have obtained something from an external resource (or prepared some information in another manner) that could be used in more than one way—by different nodes down the authentication flow.
+    By using the `sharedState.put(String key, Object value)` method, you can store information that could be used later in the authentication session. Because, you may not be ready to make your scripted decision yet, but your script may have obtained something from an external resource (or prepared some information in another manner) that could be used in more than one way by different nodes down the authentication flow.
 
     Some of the properties saved in `sharedState` may have general purpose. You can, for example, provide a custom error message for an unsuccessful authentication attempt:
 
@@ -2273,7 +2273,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     > // > ERROR: [user.0@a.com, user.0@c.com]
     > ```
 
-    Since the value returned by `idRepository.getAttribute(String username, String attribute)` is a `HashSet`, optionally, you may also be able to employ some of its methods described in the corresponding [Java](https://docs.oracle.com/javase/8/docs/api/java/util/HashSet.html), [Rhino](https://mozilla.github.io/rhino/javadoc/org/mozilla/javascript/Hashtable.html), and [Groovy](http://docs.groovy-lang.org/next/html/documentation/working-with-collections.html#_set_operations) docs. For example, you can use `size()` in JavaScript and Groovy (and `count {}` in Groovy) to check length of the returned value directly, without intermediate conversions:
+    The value returned by `idRepository.getAttribute(String username, String attribute)` is a `HashSet`; optionally, you may also be able to employ some of its methods described in the corresponding [Java](https://docs.oracle.com/javase/8/docs/api/java/util/HashSet.html), [Rhino](https://mozilla.github.io/rhino/javadoc/org/mozilla/javascript/Hashtable.html), and [Groovy](http://docs.groovy-lang.org/next/html/documentation/working-with-collections.html#_set_operations) docs. For example, you can use `size()` in JavaScript and Groovy (and `count {}` in Groovy) to check length of the returned value directly, without intermediate conversions:
 
     <br/>
 
@@ -2899,7 +2899,7 @@ The `logger` object is your best debugging friend, but not the only one:
 
 [Back to Contents](#contents)
 
-You select an OAuth2 Access Token Modification script for all clients in a realm in the AM console under Realms > _Realm Name_ > Services > OAuth2 Provider > Core > OAuth2 Access Token Modification Script. What may not be completely obvious is that _currently_ all the scripts are shared between the realms as well.
+You select an OAuth2 Access Token Modification script for all clients in a realm in the AM console under Realms > _Realm Name_ > Services > OAuth2 Provider > Core > OAuth2 Access Token Modification Script. What may not be completely obvious is that _currently_, all the scripts are shared between the realms as well.
 
 > You can verify this by navigating to a script definition and observe changes made in one realm appearing in another. Also, the script ID is going to be the same. For example:
 >
@@ -2907,7 +2907,7 @@ You select an OAuth2 Access Token Modification script for all clients in a realm
 >
 > http://openam.example.com:8080/openam/ui-admin/#realms/%2FTest/scripts/edit/d22f9a0c-426a-4466-b95e-d0f125b0d5fa
 
-This means that if you want to apply different access token modification in a (sub)realm, you'll need to create a separate script of the OAuth2 Access Token Modification type for doing so.
+This means that if you want to apply a different access token modification in a (sub)realm, you'll need to create a separate script of the OAuth2 Access Token Modification type for doing so.
 
 Application of this script type is described in [AM 7 > OAuth 2.0 Guide > Modifying the Content of Access Tokens](https://backstage.forgerock.com/docs/am/7/oauth2-guide/modifying-access-tokens-scripts.html).
 
@@ -3387,7 +3387,7 @@ Alternatively, you can modify the script itself to tailor the logs data prior to
 
 In this Node.js tool, you can process and output logs with a custom function. This is demonstrated in [one of the examples](https://github.com/lapinek/fidc-logs/blob/main/tail.idm-core.js#L40-L58) included in the repository.
 
-Yet another option is making changes in the main module, [tail.js](https://github.com/lapinek/fidc-logs/blob/main/tail.js). This way, commonly used logs processing techniques could be shared between different, source-specific callers, and your further efforts _could_ be limited to providing additional configuration options. Such approach has been implemented in [this repository](https://github.com/vscheuber/fidc-debug-tools), which also maintains a list of the Identity Cloud log categories that could be used for filtering out some unwanted log "noise".
+Yet another option is making changes in the main module, [tail.js](https://github.com/lapinek/fidc-logs/blob/main/tail.js). This way, commonly used logs processing techniques could be shared between different, source-specific callers, and your further efforts _could_ be limited to providing additional configuration options. Such an approach has been implemented in [this repository](https://github.com/vscheuber/fidc-debug-tools), which also maintains a list of the Identity Cloud log categories that could be used for filtering out some unwanted log "noise".
 
 > The Node.js JavaScript referenced above was inspired by a Ruby script, courtesy of Beau Croteau and Volker Scheuber:
 >
@@ -3459,7 +3459,7 @@ Yet another option is making changes in the main module, [tail.js](https://githu
 > $ chmod +x ./tail.rb
 >``` -->
 
-Unfortunately, without filtering, the current log sources in Identity Cloud output overwhelming amount of data with only some of it providing meaningful feedback for debugging purposes. Hopefully, more specific log categories become supported in the near future so that no additional programming skills will be required for developing scripts against the identity cloud environment.
+Unfortunately, without filtering, the current log sources in Identity Cloud output overwhelming amount of data with only some of it providing meaningful feedback for debugging purposes. Hopefully, more specific log categories will become supported in the near future so that no additional programming skills will be required for developing scripts against the identity cloud environment.
 
 In addition, the response from the Identity Cloud monitoring endpoint is often far from immediate.
 
@@ -3537,7 +3537,7 @@ Which causes no issues while commented out, but if uncommented it currently resu
 "Access to Java class \"org.apache.groovy.json.internal.LazyMap\" is prohibited."
 ```
 
-Every reference to allowed and disallowed Java classes in this article applies here, with the additional detail that at the moment you will not be able to change the default scripting configuration. This means, for example, that in JavaScript, you will not be able to check what Java class an object represents (by inspecting the `class` property, as described in [Bindings](#script-bindings)). Similarly, in JavaScript, you cannot currently iterate over the content of `sharedState` and other HashMap objects by getting a list of their keys, as shown in the [Language > Allowed Java Classes](#script-language-java-allow) examples. At the same time, since Groovy is not supported in Identity Cloud, you might not be willing to invest too much effort in developing Groovy scripts. Some of this issues could be resolved in the future with changes in the Identity Cloud scripting engine configuration and/or in how it is controlled.
+Every reference to allowed and disallowed Java classes in this article applies here, with the additional detail that at the moment, you will not be able to change the default scripting configuration. This means, for example, that in JavaScript, you will not be able to check what Java class an object represents (by inspecting the `class` property, as described in [Bindings](#script-bindings)). Similarly, in JavaScript, you cannot currently iterate over the content of `sharedState` and other HashMap objects by getting a list of their keys, as shown in the [Language > Allowed Java Classes](#script-language-java-allow) examples. At the same time, since Groovy is not supported in Identity Cloud, you might not be willing to invest too much effort in developing Groovy scripts. Some of this issues could be resolved in the future with changes in the Identity Cloud scripting engine configuration and/or in how it is controlled.
 
 ### <a id="fidc-script-type-scripted-decision-node-bindings-idrepository" name="fidc-script-type-scripted-decision-node-bindings-idrepository"></a>Accessing Profile Data
 
