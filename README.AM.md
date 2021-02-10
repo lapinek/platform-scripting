@@ -25,7 +25,7 @@ The content of this article is structured as an overview of the scripting enviro
     * [Scripting Java](#script-language-java-import)
     * [Allowed Java Classes](#script-language-java-allow)
     * [More on Rhino](#script-language-javascript)
-        * [String Concatenation](#script-language-javascript-string-concatenation)
+        * [Use Function Scope](#script-language-javascript-string-concatenation)
         * [String Comparison](#script-language-javascript-string-comparison)
 * [Script Type](#script-type)
     * [Decision node script for authentication trees](#script-type-scripted-decision-node) (Scripted Decision Node)
@@ -102,6 +102,19 @@ You may notice that some bindings are specific to the script type and some are p
 > In JavaScript, `this` represents execution context, and you will see all variables defined in the top-level scope.
 >
 > You can ignore the `context` top-level variable, for it is not a binding, nor is it used in the context of this writing.
+>
+> In addition, all top-level variables that you declared in your JavaScript will be included in the keys array. To avoid that, you could scope your code in an anonymous [Immediately Invoked Function Expression](https://developer.mozilla.org/en-US/docs/Glossary/IIFE). For example:
+> ```javascript
+> (function () {
+>     // your script
+> }())
+>```
+>
+> Alternatively, you can filter out _known_ non-bindings. The next example shows how to create an ESLint global comment from the top-level variable names:
+> ```javascript
+> filter = ['context', 'var1', 'var2']
+> logger.error('/* global ' + Object.keys(this).filter(function (e) {return filter.indexOf(e) === -1}).sort().join(', ') + ' */')
+> ```
 
 You can output the bindings with their respective values:
 
@@ -397,7 +410,7 @@ In other environments, the logs data may be sent to the standard output or, as i
 
 * [ForgeOps Docs > CDK Troubleshooting > Pod Descriptions and Container Logs](https://backstage.forgerock.com/docs/forgeops/7/devops-troubleshoot.html#devops-troubleshoot-k8s-pods)
 
-* [Identity Cloud Docs > Your Tenant > View Audit Logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html)
+* [Identity Cloud Docs > Your Tenant > View Audit Logs](https://backstage.forgerock.com/docs/idcloud/latest/tenant-audit-logs.html)
 
 When you know where to find the logs and [how to control the level of the debug output](https://ea.forgerock.com/docs/am/maintenance-guide/debug-logging.html), you can inspect the debug data for possible reasons your script is not working and/or for the information it outputs.
 
@@ -525,10 +538,12 @@ var requestBodyJson = {
     "param2": "value2"
 }
 
+var requestBody = JSON.stringify(requestBodyJson)
+
 request.setMethod("POST")
 request.getHeaders().add("Content-Type", "application/json; charset=UTF-8")
 request.getHeaders().add("Authorization", "Bearer " + sharedState.get("accessToken")) // 1
-request.getEntity().setString(JSON.stringify(requestBodyJson))
+request.getEntity().setString(requestBody) // 2
 ```
 </details>
 
@@ -552,16 +567,24 @@ def requestBodyJson = [
     "param2": "value2"
 ]
 
+def requestBody = JsonOutput.toJson(requestBodyJson)
+
 request.setMethod("POST")
 request.getHeaders().add("Content-Type", "application/json; charset=UTF-8")
 request.getHeaders().add("Authorization", "Bearer " + sharedState.get("accessToken")) // 1
-request.getEntity().setString(JsonOutput.toJson(requestBodyJson))
+request.getEntity().setString(requestBody) // 2
 ```
 </details>
 
 <br/>
 
 1. In this case, the access token is delivered by a special `sharedState` object existing in the context of an authentication tree.
+
+2. If for some reason you don't enjoy typing, you can use the [setEntity()](https://backstage.forgerock.com/docs/am/7/apidocs/org/forgerock/http/protocol/Request.html#setEntity) convenience method instead of calling `setString()` on the request entity:
+
+    ```javascript
+    request.setEntity(requestBody)
+    ```
 
 Then, you can send the prepared request with the help of the `httpClient` object provided as a binding to scripts of all types in AM.
 
@@ -634,7 +657,7 @@ if (response.getStatus().getCode() == 200) {
 
 Thus, the scripting functionality can be greatly extended with access to external resources of all kinds.
 
-It is worth reminding that `httpClient` requests are synchronous and blocking until they are completed. There is currently [no apparent way to control the timeout of an individual HTTP request](https://bugster.forgerock.org/jira/browse/OPENAM-17147) made with the [send​(Request request)](https://backstage.forgerock.com/docs/am/7/apidocs/org/forgerock/http/Client.html#send(org.forgerock.http.protocol.Request)) method.
+It is worth reminding that `httpClient` requests are synchronous and blocking until they are completed. There is currently [no apparent way to control the timeout of an individual HTTP request](https://bugster.forgerock.org/jira/browse/OPENAM-17147) made with the [send(Request request)](https://backstage.forgerock.com/docs/am/7/apidocs/org/forgerock/http/Client.html#send(org.forgerock.http.protocol.Request)) method.
 
 You can, however, specify a timeout for the script execution in the AM console under Configure > Global Services > Scripting > Secondary Configurations > _Script Type Name_ > Secondary Configurations > EngineConfiguration > Server-side Script Timeout. When the script timeout occurs, the script execution will stop, and the procedure the script is part of will fail.
 
@@ -1284,11 +1307,48 @@ sharedState.forEach {
 
 The server-side JavaScript in AM is running on Rhino. In this environment, some things may not work the same way they do in native JavaScript implementations.
 
-#### <a id="script-language-javascript-string-concatenation" name="script-language-javascript-string-concatenation"></a>String Concatenation
+#### <a id="script-language-javascript-string-concatenation" name="script-language-javascript-string-concatenation"></a>Use Function Scope
 
 [Back to Contents](#contents)
 
-Concatenating strings with the `+` operator may require the resulting string to be represented in [org.mozilla.javascript.ConsString](https://mozilla.github.io/rhino/javadoc/org/mozilla/javascript/ConsString.html) class, which at the moment, is not allowed in AM 7, by default. The following will currently result in an error:
+You might experience unexpected behavior in the top-level scope of an AM script.
+
+One known behavior is that assigning a Java object to a variable in the script's global context might convert it to a Rhino or JavaScript-specific type. Consider the following example:
+
+```javascript
+var javaString = new java.lang.String()
+
+logger.error("javaString.class: " + javaString.getBytes)
+```
+
+> Here, we are trying to check fo presence of the [`.getBytes`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html#getBytes()) method and thus, determine whether the variable is assigned a instance of the `java.lang.String` class.
+>
+> Checking directly for the class name would require access to the `java.lang.Class` class, which is explicitly prohibited by default in the AM scripting engine configuration.
+
+If this were literally the content of your scripted decision, and the code is placed in the top-level scope, you will see in the logs that the `.getBytes` method is undefined:
+
+```
+ERROR: javaString.class: undefined
+```
+
+If you, however, move the same code into a function, the Java type will be preserved in the variable and you will see the stringified representation of the `.getBytes` method:
+
+```javascript
+(function () {
+    var javaString = new java.lang.String()
+
+    logger.error("javaString.class: " + javaString.getBytes)
+})
+```
+
+```
+ERROR: javaString.class: function getBytes() {/*\nvoid getBytes(int,int,byte[],int)\nbyte[] getBytes()\nbyte[] getBytes(java.nio.charset.Charset)\nbyte[] getBytes(java.lang.String)\n*/}\n
+```
+
+This is because in the top-level scope, the Java string will be converted into [org.mozilla.javascript.ConsString](https://mozilla.github.io/rhino/javadoc/org/mozilla/javascript/ConsString.html) class, which does not have a `.getBytes` method.
+
+<!--
+Because of this, concatenating strings with the `+` operator in the top level scope may require the resulting string to be represented in `org.mozilla.javascript.ConsString`. If this class is not allowed in the scripting configuration, it will result in an error:
 
 <br/>
 
@@ -1384,6 +1444,11 @@ ERROR: sharedState: {realm=/, authLevel=0, username=user.0, errorMessage=Referen
 ```
 
 The output we wanted to see.
+ -->
+
+ The take away here is that you should put ALL your code into _a_ function, including the option of wrapping your entire script in an [Immediately Invoked Function Expression (IIFE)](https://developer.mozilla.org/en-US/docs/Glossary/IIFE).
+
+ This way you will insure consistent and predictable behavior of type coercion in your AM script.
 
 #### <a id="script-language-javascript-string-comparison" name="script-language-javascript-string-comparison"></a>String Comparison
 
@@ -1423,7 +1488,7 @@ In both JavaScript and Groovy, to convert to a String, you can use `toString()` 
 _Generally_, however, in JavaScript, it is better to use the `String` object in non-constructor context, for it lets you handle `Symbol`, `null`, and `undefined` values all at once. For example:
 
 ```javascript
-String(idRepository.getAttribute(username, attribute))
+String(idRepository.getAttribute(username, attribute).toArray()[100])
 ```
 
 ## <a id="script-type" name="script-type"></a>Script Type
@@ -1436,7 +1501,7 @@ In addition, for the server-side scripts, access to the underlying Java classes 
 
 > See [The Scripting Environment](https://backstage.forgerock.com/docs/am/7/scripting-guide/scripting-env.html) for additional details on scripting contexts and security settings.
 
-### <a id="script-type-scripted-decision-node" name="script-type-scripted-decision-node"></a>Decision node script for authentication trees (Scripted Decision Node)
+### <a id="script-type-scripted-decision-node" name="script-type-scripted-decision-node"></a>Decision node script for authentication trees ([Scripted Decision Node](https://backstage.forgerock.com/docs/am/7.1/authentication-guide/scripting-api-node.html))
 
 [Back to Contents](#contents)
 
@@ -1511,7 +1576,7 @@ At the end of a script execution, the script can communicate back to its node by
     >
     > In reality, `outcome` is not limited to the two choices; it can correspond to any variety of authentication paths to continue with, and the string value is arbitrary.
 
-* <a id="script-type-scripted-decision-node-outcomes-action" name="script-type-scripted-decision-node-outcomes-action"></a>`action`, the variable that can be assigned an [Action Interface](https://backstage.forgerock.com/docs/am/7/auth-nodes/core-action.html) object to define the script outcome and/or specify an operation to perform. For example:
+* <a id="script-type-scripted-decision-node-outcomes-action" name="script-type-scripted-decision-node-outcomes-action"></a>`action`, the variable that can be assigned an [Action Interface](https://backstage.forgerock.com/docs/am/7/auth-nodes/core-action.html) object to define the script outcome and/or specify one or more operations to perform. For example:
 
     [Back to Contents](#contents)
 
@@ -1538,6 +1603,21 @@ At the end of a script execution, the script can communicate back to its node by
     var goTo = org.forgerock.openam.auth.node.api.Action.goTo
 
     action = goTo("true").putSessionProperty("customKey", "customValue").build() // The outcome is set to "true", and a custom session property will be created and populated.
+    ```
+    </details>
+
+    <br/>
+
+    <details open>
+    <summary><strong>JavaScript</strong></summary>
+
+    ```javascript
+    var goTo = org.forgerock.openam.auth.node.api.Action.goTo
+
+    action = goTo("true")
+        .putSessionProperty("customKey1", "customValue1")
+        .putSessionProperty("customKey2", "customValue2")
+        .build()  // The outcome is set to "true", and two additional operations are specified.
     ```
     </details>
 
@@ -1702,7 +1782,7 @@ The script context is provided via its bindings. The bindings also serve as the 
     > `sharedState` exists unconditionally during the lifetime of the authentication session and could be returned to the user in an unencrypted JWT in each response during the authentication flow.
     > <details>
     > <summary>Details</summary>
-    > If you choose to save the authentication session state in JWT (under Realms > _Realm Name_ > Authentication > Settings > Trees > Authentication session state management scheme), and set CONFIGURE > Global Services > Session > Client-based Sessions > Encryption Algorithm to “NONE”, your authentication state will be included in an encoded but unencrypted form in every (callback) response to the user agent:
+    > If you choose to save the authentication session state in JWT (under Realms > _Realm Name_ > Authentication > Settings > Trees > Authentication session state management scheme), and set CONFIGURE > Global Services > Session > Client-based Sessions > Encryption Algorithm to "NONE", your authentication state will be included in an encoded but unencrypted form in every (callback) response to the user agent:
     >
     > ```json
     > {
@@ -2266,7 +2346,7 @@ The script context is provided via its bindings. The bindings also serve as the 
 
     <br/>
 
-    > For brevity, and to illustrate interchangeability, the same syntax was used in the last two examples. As noted in [Debug Logging](#script-debug-logging), in JavaScript you don't need to convert a non-string argument for the logger methods to String (although, doing so won't hurt either), and the following will work:
+    > For brevity, and to illustrate interchangeability, the same syntax was used in the last two examples. As noted in [Debug Logging](#script-debug-logging), in JavaScript you don't need to convert a non-string argument to String for the logger methods (although, doing so won't hurt either), and the following will work:
     >
     > ```javascript
     > logger.error(idRepository.getAttribute(username, attribute))
@@ -2507,6 +2587,8 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
+    <br/>
+
     <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.JavaScript.Simple.png" width="512">
     </details>
 
@@ -2532,6 +2614,8 @@ The `logger` object is your best debugging friend, but not the only one:
         action = Action.goTo("true").build()
     }
     ```
+
+    <br/>
 
     <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.Groovy.Simple.png" width="512">
     </details>
@@ -2578,6 +2662,8 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
+    <br/>
+
     <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.JavaScript_0.png" width="512">
     </details>
 
@@ -2615,6 +2701,8 @@ The `logger` object is your best debugging friend, but not the only one:
         action = Action.goTo("true").build()
     }
     ```
+
+    <br/>
 
     <img alt="Text Output Callback from Authentication Tree adds a message on the page." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.TextOutputCallback.Groovy_1.png" width="512">
     </details>
@@ -2662,6 +2750,8 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
+    <br/>
+
     <img alt="Script Text Output Callback from Authentication Tree outputs information in a JavaScript alert." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.alert__0.png" width="512">
     </details>
 
@@ -2702,6 +2792,8 @@ The `logger` object is your best debugging friend, but not the only one:
         action = fr.Action.goTo("true").build()
     }
     ```
+
+    <br/>
 
     <img alt="Script Text Output Callback from Authentication Tree outputs information in a JavaScript alert." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.alert__0.png" width="512">
     </details>
@@ -2751,6 +2843,8 @@ The `logger` object is your best debugging friend, but not the only one:
     }
     ```
 
+    <br/>
+
     <img alt="Script Text Output Callback from Authentication Tree outputs information in the browser console." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.JavaScript.console.png" width="720">
     </details>
 
@@ -2794,6 +2888,8 @@ The `logger` object is your best debugging friend, but not the only one:
         action = fr.Action.goTo("true").build()
     }
     ```
+
+    <br/>
 
     <img alt="Script Text Output Callback from Authentication Tree outputs information in the browser console." src="README_files/2021-01/AM.Scripted-Decision.Callbacks.ScriptTextOutputCallback.Groovy.console.png" width="1200">
     </details>
@@ -2881,7 +2977,7 @@ The `logger` object is your best debugging friend, but not the only one:
     try {
         password = secrets.getGenericSecret("scripted.node.secret.id").getAsUtf8()
 
-        output true
+        output = "true"
     } catch(e) {
         action = Action.goTo("false").withErrorMessage(e.toString()).build()
     }
@@ -2895,7 +2991,7 @@ The `logger` object is your best debugging friend, but not the only one:
 
     If respected by the UI, this message will be displayed to the end user instead of the default one.
 
-### <a id="script-type-oauth2-access-token-modification" name="script-type-oauth2-access-token-modification"></a>OAuth2 Access Token Modification
+### <a id="script-type-oauth2-access-token-modification" name="script-type-oauth2-access-token-modification"></a>[OAuth2 Access Token Modification](https://backstage.forgerock.com/docs/am/7.1/oauth2-guide/modifying-access-tokens-scripts.html#scripting-api-oauth2)
 
 [Back to Contents](#contents)
 
@@ -3285,7 +3381,7 @@ Due to its cloud based, multi-tenant nature, the Identity Cloud environment intr
 
 [Back to Contents](#contents)
 
-[Identity Cloud Docs > Your Tenant > View Audit Logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html) outlines general idea on how logs produced in Identity Cloud could be viewed over its REST API.
+[Identity Cloud Docs > Tenants > View Audit Logs](https://backstage.forgerock.com/docs/idcloud/latest/tenant-audit-logs.html) outlines general idea on how logs produced in Identity Cloud could be viewed over its REST API.
 
 At the time of this writing, the list of available log sources consists of the following:
 
@@ -3341,7 +3437,7 @@ As shown in Identity Cloud docs, the logs come in a form of JSON, with each log 
 }
 ```
 
-You can [tail logs](https://backstage.forgerock.com/docs/idcloud/latest/paas/tenant/audit-logs.html#tailing_logs) from the selected source, and employ a script to automate the process of requesting, filtering, and outputting the logged content.
+You can [tail logs](https://backstage.forgerock.com/docs/idcloud/latest/tenant-audit-logs.html#tailing_logs) from the selected source, and employ a script to automate the process of requesting, filtering, and outputting the logged content.
 
 [This Identity Cloud logging tool for Node.js](https://github.com/lapinek/fidc-logs) can be used to print out the logs as stringified JSON in the terminal. Its core module can be shared between different scripts customized for particular tenant and source. For example:
 
@@ -3383,15 +3479,42 @@ $ node tail.am-core.js | jq '. | select(objects) | select(has("exception") or (.
 . . .
 ```
 
+The filter:
+* `select( . . . )`
+* `has("exeption")`
+* `or`
+* `(.logger | test("scripts."))`
+
+The presentation:
+* `| {logger: .logger, message: .message, timestamp: .timestamp, exception: .exception}`
+
+Or, you may only be interested in exceptions produced by a particular logger—a script, for example:
+
+```bash
+$ node tail.am-core.js | jq '. | select(objects) | select(has("exception") and (.logger | test("org.forgerock.openam.scripting.")) or (.logger | test("scripts."))) | {logger: .logger, message: .message, timestamp: .timestamp, exception: .exception}'
+```
+
+Notice the filter change:
+* `select( . . . )`
+* `has("exception") and (.logger | test("org.forgerock.openam.scripting."))`
+* `or`
+* `(.logger | test("scripts."))`
+
+And so on.
+
+> If you modify the scripts to allow for non-JSON data, or use `jq` in a different environment where JSON output is not guaranteed, you may want to limit the tool input to JSON only. For example, in [ForgeRock DevOps (ForgeOps)](https://backstage.forgerock.com/docs/forgeops/7/devops-troubleshoot.html#devops-troubleshoot-k8s-pods), you could tail an AM pod scripting logs with the following:
+>
+> ```bash
+> kubectl logs --follow am-78684784c4-j2ngm | jq -R 'fromjson? | select(objects) | select(has("exception") and (.logger | test("org.forgerock.openam.scripting.")) or (.logger | test("scripts."))) | {logger: .logger, message: .message, timestamp: .timestamp, exception: .exception}'
+> ```
+
 Alternatively, you can modify the scripts themselves for tailoring the logs data prior to printing it out.
 
 It is easy to do by modifying [the default function](https://github.com/lapinek/fidc-logs#customizing-output) that processes and outputs the content received from the tail endpoint, and by providing your custom version as an argument when loading the module. This flexibility is demonstrated in [the examples](https://github.com/lapinek/fidc-logs/blob/main/tail.idm-core.js#L40-L58) included in the repository.
 
-Yet another option is making changes in the main module, [tail.js](https://github.com/lapinek/fidc-logs/blob/main/tail.js). This way, commonly used logs processing techniques could be shared between different tenant and source-specific callers (although the same could be achieved by reusing a custom function discussed in the previous paragraph). Changing the main module has been implemented in the following repository, which also maintains a list of the Identity Cloud log categories that could be used for filtering out some unwanted log "noise":
+Yet another option is making changes in the main module, [tail.js](https://github.com/lapinek/fidc-logs/blob/main/tail.js). This way, commonly used logs processing techniques could be shared between different tenant and source-specific callers (although the same could be achieved by reusing a custom function discussed in the previous paragraph). Changing the main module has been implemented in the following repository, which also maintains a list of the Identity Cloud log categories that could be used for filtering out some unwanted log "noise": [https://github.com/vscheuber/fidc-debug-tools](https://github.com/vscheuber/fidc-debug-tools)
 
-[https://github.com/vscheuber/fidc-debug-tools](https://github.com/vscheuber/fidc-debug-tools)
-
-> The Node.js JavaScript referenced above was inspired by a Ruby script, courtesy of Beau Croteau and Volker Scheuber:
+> The Node.js JavaScript approach referenced above was inspired by a Ruby script, courtesy of Beau Croteau and Volker Scheuber:
 >
 > <details>
 > <summary><strong>Ruby</strong></summary>
@@ -3501,7 +3624,7 @@ if (callbacks.isEmpty()) {
 
 <br/>
 
-<img alt="Platform Login screen, Debugging information is displayed in the browser in a page element." src="README_files/2021-01/Platform.Authentication-Journey.Scripted-Decision.TextOutputCallback.png" width="360">
+<img alt="Platform Login screen, Debugging information is displayed in the browser in a page element." src="README_files/2021-01/Platform.Authentication-Journey.Scripted-Decision.TextOutputCallback.png" width="512">
 
 ### <a id="fidc-script-java-allow" name="fidc-script-java-allow"></a>Allowed Java Classes
 
@@ -3687,7 +3810,9 @@ When you request this authentication journey with the correct `id` parameter, an
 
 ***
 
-Another consequence of the Identity Store configuration not being exposed in the AM console is that you cannot verify which attributes in the identity store are accessible from the scripts. In addition, attribute naming in AM and IDM is inconsistent, so the former cannot be derived from the latter. This is a [known issue](https://backstage.forgerock.com/docs/idcloud/latest/paas/known-issues/fraas-4585.html), which provides a convenient lookup table in its Workaround section as a temporary remedy.
+Another consequence of the Identity Store configuration not being exposed in the AM console is that you cannot verify which attributes in the identity store are accessible from the scripts. In addition, attribute naming in AM and IDM is inconsistent.
+
+While the IDM property names are exposed in the Admin UIs, consult the [Identity Cloud Docs > Developers > User Profile Properties and Attributes Reference](https://backstage.forgerock.com/docs/idcloud/latest/developers-scripting-attributes-ref.html) tables for the corresponding attribute names you can use in AM scripts.
 
 > You can see IDM attributes for a realm in the Platform Admin under:
 > * Native Consoles > Identity Management > CONFIGURE > Managed Objects > _MANAGED OBJECT_
